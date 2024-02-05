@@ -4,7 +4,7 @@ from random import randint
 
 app = FastAPI()
 
-r = Redis(host='redis', port=6379, decode_responses=True)
+r = Redis(host='redis', port=6379, decode_responses=False)
 
 
 key = 'place_bitmap'
@@ -23,6 +23,11 @@ def fill_random_colors():
         bf.execute()
 
 
+# def get_bitfield_as_integers(redis_client, key, total_integers, integer_size):
+#     bitstring = redis_client.get(key)
+#     integers = [int.from_bytes(bitstring[i:i], 'big') for i in range(0, len(bitstring), integer_size)]
+#     return integers
+
 def get_bitfield_as_integers(redis_client, key, total_integers, integer_size):
     bitfield = []
     bits_per_request = 64  # Number of bits to fetch in each request (should be a multiple of integer_size)
@@ -36,17 +41,16 @@ def get_bitfield_as_integers(redis_client, key, total_integers, integer_size):
         # Convert the bitstring to integers
         for j in range(integers_per_request):
             offset = j * integer_size
-            integer = int.from_bytes(bitstring[offset // 8:(offset + integer_size) // 8].encode(), byteorder='big') >> (8 - integer_size - (offset % 8))
+            integer = int.from_bytes(bitstring[offset // 8:(offset + integer_size) // 8], byteorder='big') >> (8 - integer_size - (offset % 8))
             bitfield.append(integer & ((1 << integer_size) - 1))
-
-    return bitfield[:total_integers] 
+    return bitfield[:total_integers]
 
 create_bitmap()
 
 
 @app.get("/")
 def read_root():
-    print(r.get('foo'))
+    print(r.get('foo')) # retourne None
     return {"Hello": "World"}
 
 
