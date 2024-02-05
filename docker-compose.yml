@@ -1,0 +1,30 @@
+version: "3"
+services:
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --save 20 1 
+    ports:
+      - "6379:6379"
+    volumes:
+      - place_cache:/data
+  placeapi:
+    image: placeapi
+    build:
+      context: api
+      dockerfile: Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - place_cache:/data
+    depends_on:
+      - redis
+volumes:
+  place_cache:
