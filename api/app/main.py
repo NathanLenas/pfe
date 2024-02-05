@@ -13,12 +13,14 @@ def create_bitmap():
         offset = i * 4
         bf = r.bitfield(key)
         bf.set('u4', offset, randint(0, 15))
+        bf.execute()
         
 def fill_random_colors():
     for i in range(10000):
         offset = i * 4
         bf = r.bitfield(key)
         bf.set('u4', offset, randint(0, 15))
+        bf.execute()
 
 
 def get_bitfield_as_integers(redis_client, key, total_integers, integer_size):
@@ -53,10 +55,17 @@ def get_board_bitmap():
     fill_random_colors()
     return get_bitfield_as_integers(r, key, 10000, 4)
 
-@app.get("/api/place/board-bitmap/{x}/{y}")
-def get_pixel(x:int, y:int):
-    result = r.bitfield(key).get('u4', x * 4 + y)
-    return {"pixel_color": result} if result is not None else {"pixel_color": "test"}
+@app.get("/api/place/board-bitmap/pixel/")
+def get_pixel(x: int, y: int):
+    offset = x + y * 100
+    colors = []
+    for i in range(4):
+        bit_value = r.getbit(key, offset + i)
+        colors.append(bit_value)
+    
+    colors = int(''.join(map(str, colors)), 2)
+    
+    return {"pixel_colors": colors}
 
 
 @app.post("/api/place/draw")
