@@ -20,6 +20,8 @@ services:
       REDIS_PORT: 6379
     depends_on:
       - redis
+    volumes:
+      - ./api/app:/code/app
   redisinsight:
     image: redislabs/redisinsight:latest
     ports:
