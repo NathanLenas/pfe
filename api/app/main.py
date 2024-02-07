@@ -1,8 +1,25 @@
 from fastapi import FastAPI, HTTPException, Query
 from redis import Redis
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 r = Redis(host='redis', port=6379, decode_responses=False)
 key = 'place_bitmap'
 
@@ -14,8 +31,8 @@ class DrawCommand(BaseModel):
 
 
 def create_bitmap(redis_client, key, total_pixels=10000):
-    for _ in range(total_pixels):
-        offset = _ * 4
+    for i in range(total_pixels):
+        offset = i * 4
         bf = redis_client.bitfield(key)
         bf.set('u4', offset, 0)
         bf.execute()
