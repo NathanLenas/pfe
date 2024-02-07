@@ -4,9 +4,40 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Set
 from fastapi import WebSocket, WebSocketDisconnect
+from cassandra.cluster import Cluster
+import time
 
 app = FastAPI()
+
+# Connect to redis
 r = Redis(host='redis', port=6379, decode_responses=False)
+
+
+
+def connect_to_cassandra(retries=10):
+    for attempt in range(retries):
+        try:
+            cluster = Cluster(['cassandra'])  
+            session = cluster.connect() 
+            return session
+        except Exception as e:
+            time.sleep(5)  # Wait for  5 seconds before retrying
+    print("Failed to connect to Cassandra after several attempts.")
+    return None
+
+# Example usage
+session = connect_to_cassandra()
+if session:
+    # Create keyspace and table
+    session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
+    session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color text, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
+    session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
+else:
+    print("Failed to connect to Cassandra. Exiting.")
+
+
+
+
 key = 'place_bitmap'
 active_connections: Set[WebSocket] = set()
 

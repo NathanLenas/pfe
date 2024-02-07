@@ -20,6 +20,7 @@ services:
       REDIS_PORT: 6379
     depends_on:
       - redis
+      - cassandra
     volumes:
       - ./api/app:/code/app
   redisinsight:
@@ -30,5 +31,12 @@ services:
       - place_cache:/data
     depends_on:
       - redis
+  cassandra:
+    image: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
 volumes:
   place_cache:
+  cassandra_data:
