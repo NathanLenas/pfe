@@ -1,11 +1,22 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, WebSocket
 from redis import Redis
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
+from typing import Set
+from fastapi import WebSocket, WebSocketDisconnect
 
 app = FastAPI()
 r = Redis(host='redis', port=6379, decode_responses=False)
 key = 'place_bitmap'
+active_connections: Set[WebSocket] = set()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class DrawCommand(BaseModel):
     x: int
@@ -14,8 +25,8 @@ class DrawCommand(BaseModel):
 
 
 def create_bitmap(redis_client, key, total_pixels=10000):
-    for _ in range(total_pixels):
-        offset = _ * 4
+    for i in range(total_pixels):
+        offset = i * 4
         bf = redis_client.bitfield(key)
         bf.set('u4', offset, 0)
         bf.execute()
@@ -69,21 +80,36 @@ def get_board_bitmap():
 
 
 @app.get("/api/place/board-bitmap/pixel/")
-def get_pixel(x: int = Query(..., ge=0, lt=100), y: int = Query(..., ge=0, lt=100)):
+async def get_pixel(x: int = Query(..., ge=0, lt=100), y: int = Query(..., ge=0, lt=100)):
     color = get_pixel_color(r, key, x, y)
     return {"pixel_color": color}
 
 
 @app.post("/api/place/draw")
-def draw_on_board(command: DrawCommand):
-    index = command.x + command.y * 100
-    if not (0 <= command.x < 100 and 0 <= command.y < 100):
+async def draw_on_board(command: DrawCommand):
+    index = command.x + command.y *  100
+    if not (0 <= command.x <  100 and  0 <= command.y <  100):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
-    if not (0 <= command.color < 16):
+    if not (0 <= command.color <  16):
         raise HTTPException(status_code=400, detail="Invalid color value")
     set_4bit_value(r, key, index, command.color)
+    
+    # Notify all WebSocket clients about the draw
+    for connection in active_connections:
+        await connection.send_json({"type": "draw", "x": command.x, "y": command.y, "color": command.color})
+        
     return {"message": "Pixel updated successfully"}
 
 
+@app.websocket("/api/place/board-bitmap/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.add(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Handle any incoming messages if needed
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
 # Create bitmap on startup
 create_bitmap(r, key)
