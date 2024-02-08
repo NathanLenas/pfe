@@ -20,16 +20,9 @@ const Canvas = () => {
         ctx.restore(); // Restore the previous state of the canvas context
       }
     }, [scale, ctx]);
-  
-    //MARCHE PAS
-    const handleZoomIn = () => {
-      setScale(scale * 1.2);
-    };
-    //MARCHE PAS peut être une idée: l'image change de taille mais pas la div
-    const handleZoomOut = () => {
-      setScale(scale / 1.2);
-    };
-  
+    const changeColor = () =>{
+
+    }
     const handleCanvasClick = (e) => {
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
@@ -45,8 +38,6 @@ const Canvas = () => {
     return (
       <div>
         <div>
-          <button onClick={handleZoomIn}>Zoom In</button>
-          <button onClick={handleZoomOut}>Zoom Out</button>
         </div>
         <canvas
           ref={canvasRef}
@@ -55,6 +46,7 @@ const Canvas = () => {
           style={{ border: '1px solid black' }}
           onClick={handleCanvasClick}
         />
+        <button onClick={changeColor}>blue</button>
       </div>
     );
   };
