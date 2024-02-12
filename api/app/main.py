@@ -22,7 +22,7 @@ def connect_to_cassandra(retries=10):
             session = cluster.connect()  
             return session
         except Exception as e:
-            time.sleep(5)  # Wait for   5 seconds before retrying
+            time.sleep(5)  # Wait for 5 seconds before retrying
     raise RuntimeError("Failed to connect to Cassandra after several attempts.")
 
 # Example usage
@@ -32,7 +32,7 @@ if cassandra_session:
     print("Creating tables")
     # Create keyspace and table
     cassandra_session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
-    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color text, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
+    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color int, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
     cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
 else:
     print("Failed to connect to Cassandra. Exiting.")
@@ -54,7 +54,9 @@ app.add_middleware(
 class DrawCommand(BaseModel):
     x: int
     y: int
-    color: int 
+    color: int
+    user: str
+
     
 def set_last_user_timestamp(cassandra_session: Session, user: str, timestamp: Optional[datetime] = None):
     if timestamp is None:
@@ -73,7 +75,13 @@ def get_last_user_timestamp(cassandra_session: Session, user: str):
     return row.timestamp if row else None
 
 
+def store_draw_info(cassandra_session: Session, x: int, y: int, color: int, user: str, timestamp: Optional[datetime] = None):
+    # If timestamp is None, use the current timestamp
+    if timestamp is None:
+        timestamp = datetime.utcnow()
 
+    cassandra_session.execute("INSERT INTO place.tiles (x, y, color, user, timestamp) VALUES (%s, %s, %s, %s, %s)", (x,y,color,user,timestamp))
+    
 
 def create_bitmap(redis_client, key, total_pixels=10000):
     for i in range(total_pixels):
@@ -122,11 +130,14 @@ def set_4bit_value(redis_client, key, index, value):
 
 @app.get("/")
 async def read_root():
+    store_draw_info(cassandra_session, 1, 1, 1, "test", datetime.utcnow())
+    
     return {"message": "Welcome to the Place API"}
     # Test the Cassandra connection
     # set_last_user_timestamp(cassandra_session, "test", None)
     # a = get_last_user_timestamp(cassandra_session, "test")
     # return a
+    # test store_draw_info
 
 
 @app.get("/api/place/board-bitmap")
@@ -147,13 +158,33 @@ async def draw_on_board(command: DrawCommand):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
     if not (0 <= command.color <  16):
         raise HTTPException(status_code=400, detail="Invalid color value")
+    
+    # Update the last tile timestamp for the user
+    set_last_user_timestamp(cassandra_session, command.user, command.timestamp)
+    
+    store_draw_info(cassandra_session, command.x, command.y, command.color, command.user, None)
+    # Set the pixel color in Redis
     set_4bit_value(redis_session, key, index, command.color)
     
     # Notify all WebSocket clients about the draw
     for connection in active_connections:
-        await connection.send_json({"type": "draw", "x": command.x, "y": command.y, "color": command.color})
+        await connection.send_json({
+            "type": "draw",
+            "x": command.x,
+            "y": command.y,
+            "color": command.color,
+            "user": command.user,
+            "timestamp": command.timestamp.isoformat() if command.timestamp else None
+        })
         
     return {"message": "Pixel updated successfully"}
+
+@app.get("/api/place/last-user-timestamp/{user}")
+async def get_user_last_timestamp(user: str):
+    timestamp = get_last_user_timestamp(cassandra_session, user)
+    if timestamp is None:
+        raise HTTPException(status_code=404, detail="No timestamp found for user")
+    return {"timestamp": timestamp}
 
 
 @app.websocket("/api/place/board-bitmap/ws")
