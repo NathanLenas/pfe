@@ -4,34 +4,36 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Set
 from fastapi import WebSocket, WebSocketDisconnect
-from cassandra.cluster import Cluster
+from cassandra.cluster import Cluster, Session
 import time
+import typing
+from datetime import datetime
+from typing import Optional
 
 app = FastAPI()
 
 # Connect to redis
-r = Redis(host='redis', port=6379, decode_responses=False)
-
-
+redis_session = Redis(host='redis', port=6379, decode_responses=False)
 
 def connect_to_cassandra(retries=10):
     for attempt in range(retries):
         try:
-            cluster = Cluster(['cassandra'])  
-            session = cluster.connect() 
+            cluster = Cluster(['cassandra'])   
+            session = cluster.connect()  
             return session
         except Exception as e:
-            time.sleep(5)  # Wait for  5 seconds before retrying
-    print("Failed to connect to Cassandra after several attempts.")
-    return None
+            time.sleep(5)  # Wait for   5 seconds before retrying
+    raise RuntimeError("Failed to connect to Cassandra after several attempts.")
 
 # Example usage
-session = connect_to_cassandra()
-if session:
+cassandra_session = connect_to_cassandra()
+
+if cassandra_session:
+    print("Creating tables")
     # Create keyspace and table
-    session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
-    session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color text, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
-    session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
+    cassandra_session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
+    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color text, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
+    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
 else:
     print("Failed to connect to Cassandra. Exiting.")
 
@@ -53,6 +55,24 @@ class DrawCommand(BaseModel):
     x: int
     y: int
     color: int 
+    
+def set_last_user_timestamp(cassandra_session: Session, user: str, timestamp: Optional[datetime] = None):
+    if timestamp is None:
+        timestamp = datetime.utcnow()  # Use current UTC time if none provided
+
+    # Separate the update and insert operations
+    cassandra_session.execute("UPDATE place.last_tile_timestamp SET timestamp = %s WHERE user = %s", (timestamp, user))
+    cassandra_session.execute("INSERT INTO place.last_tile_timestamp (user, timestamp) VALUES (%s, %s) IF NOT EXISTS", (user, timestamp))
+
+
+def get_last_user_timestamp(cassandra_session: Session, user: str):
+    query = f"SELECT timestamp FROM place.last_tile_timestamp WHERE user = '{user}'"
+    prepared_query = cassandra_session.prepare(query)
+    result = cassandra_session.execute(prepared_query)
+    row = result.one()
+    return row.timestamp if row else None
+
+
 
 
 def create_bitmap(redis_client, key, total_pixels=10000):
@@ -101,18 +121,22 @@ def set_4bit_value(redis_client, key, index, value):
 
 
 @app.get("/")
-def read_root():
-    return {"Hello": "World"}
+async def read_root():
+    return {"message": "Welcome to the Place API"}
+    # Test the Cassandra connection
+    # set_last_user_timestamp(cassandra_session, "test", None)
+    # a = get_last_user_timestamp(cassandra_session, "test")
+    # return a
 
 
 @app.get("/api/place/board-bitmap")
 def get_board_bitmap():
-    return get_bitfield_as_integers(r, key, 10000)
+    return get_bitfield_as_integers(redis_session, key, 10000)
 
 
 @app.get("/api/place/board-bitmap/pixel/")
 async def get_pixel(x: int = Query(..., ge=0, lt=100), y: int = Query(..., ge=0, lt=100)):
-    color = get_pixel_color(r, key, x, y)
+    color = get_pixel_color(redis_session, key, x, y)
     return {"pixel_color": color}
 
 
@@ -123,7 +147,7 @@ async def draw_on_board(command: DrawCommand):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
     if not (0 <= command.color <  16):
         raise HTTPException(status_code=400, detail="Invalid color value")
-    set_4bit_value(r, key, index, command.color)
+    set_4bit_value(redis_session, key, index, command.color)
     
     # Notify all WebSocket clients about the draw
     for connection in active_connections:
@@ -143,4 +167,4 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         active_connections.remove(websocket)
 # Create bitmap on startup
-create_bitmap(r, key)
+create_bitmap(redis_session, key)
