@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
+import './canvas.css'
 const Canvas = () => {
     const canvasRef = useRef(null);
-    //const [scale, setScale] = useState(1);
     const [ctx, setCtx] = useState(null);
     const [color, setColor] = useState("000000");
 
@@ -16,23 +16,26 @@ const Canvas = () => {
         ctx.clearRect(0, 0, 1000, 1000); // Clear canvas
         ctx.save(); // Save the current state of the canvas context
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 1000, 1000); // Draw blue rectangle
+        ctx.fillRect(0, 0, 1000, 1000); // Draw canvas
         ctx.restore(); // Restore the previous state of the canvas context
       }
     }, [ctx]);
 
-
-    const handleCanvasClick = (e) => {
+    
+    const handleCanvasClick = (event) => {
+      
+      
       const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();  
+      const scaleX = canvas.width / rect.width; // Get the scale in X direction
+      const scaleY = canvas.height / rect.height; // Get the scale in Y direction
+      const x = Math.floor(((event.clientX - rect.left) * scaleX)/10);
+      const y = Math.floor(((event.clientY - rect.top) * scaleY)/10);
+      console.log(`Clicked at (${x}, ${y})`);
+
       const context = canvas.getContext('2d');
-      const rect = canvas.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left));
-      const y = Math.floor((e.clientY - rect.top));
-      console.log('Clicked on pixel:', x, y);
       context.fillStyle = color;
-      //console.log(Math.floor(x/10));
-      context.fillRect(Math.floor(x/10)*10,Math.floor(y/10)*10,10,10)
-      // You can perform actions based on the clicked pixel here
+      context.fillRect(x*10,y*10,10,10);
     };
 
     const changeColor = (newColor) =>{
@@ -41,9 +44,7 @@ const Canvas = () => {
     }
 
     return (
-      <div>
-        <div>
-        </div>
+      <div className="container">
         <canvas
           ref={canvasRef}
           width={1000}
@@ -51,70 +52,39 @@ const Canvas = () => {
           style={{ border: '1px solid black' }}
           onClick={handleCanvasClick}
         />
-        <div>
-        <button onClick={()=>changeColor("#6d001a")}>
-          dark red</button>
-          <button onClick={()=>changeColor("#be0039")}> red</button>
-          <button onClick={()=>changeColor("#ff4500")}>
-          orange</button>
-          <button onClick={()=>changeColor("#ffa800")}>
-          gold</button>
-          <button onClick={()=>changeColor("#ffd635")}>
-          yellow</button>
-          <button onClick={()=>changeColor("#fff8b8")}>
-          pale yellow</button>
-          <button onClick={()=>changeColor("#00a368")}>
-          Dark Green</button>
-          <button onClick={()=>changeColor("#00cc78")}>
-          Green</button>
-          <button onClick={()=>changeColor("#7eed56")}>
-          Light Green</button>
-          <button onClick={()=>changeColor("#00756f")}>
-          Teal</button>
-          <button onClick={()=>changeColor("#009eaa")}>
-          Cyan</button>
-          <button onClick={()=>changeColor("#00ccc0")}>
-          Green</button>
-          <button onClick={()=>changeColor("#2450a4")}>
-          red</button>
-          <button onClick={()=>changeColor("#3690ea")}>
-          Green</button>
-          <button onClick={()=>changeColor("#51e9f4")}>
-          red</button>
-          <button onClick={()=>changeColor("#493ac1")}>
-          Green</button>
-          <button onClick={()=>changeColor("#6a5cff")}>
-          red</button>
-          <button onClick={()=>changeColor("#94b3ff")}>
-          red</button>
-          <button onClick={()=>changeColor("#811e9f")}>
-          Purple</button>
-          <button onClick={()=>changeColor("#b44ac0")}>
-          Light purple</button>
-          <button onClick={()=>changeColor("#e4abff")}>
-          Magenta</button>
-          <button onClick={()=>changeColor("#de107f")}>
-          BlackPink</button>
-          <button onClick={()=>changeColor("#ff3881")}>
-          Pink</button>
-          <button onClick={()=>changeColor("#ff99aa")}>
-          Light Pink</button>
-          <button onClick={()=>changeColor("#6d482f")}>
-          Dark Brown</button>
-          <button onClick={()=>changeColor("#9c6926")}>
-          Brown</button>
-          <button onClick={()=>changeColor("#ffb470")}>
-          Beige</button>
-          <button onClick={()=>changeColor("#000000")}>
-          Black</button>
-          <button onClick={()=>changeColor("#515252")}>
-          Dark Gray</button>
-          <button onClick={()=>changeColor("#898d90")}>
-          Gray</button>
-          <button onClick={()=>changeColor("#d4d7d9")}>
-          Light Gray</button>
-          <button onClick={()=>changeColor("#ffffff")}>
-          White</button>
+        <div className='choiceColor'>
+          <div className='color'><button style={{backgroundColor: '#6d001a'}} onClick={()=>changeColor("#6d001a")}/></div>
+          <div className='color'><button style={{backgroundColor: '#be0039'}} onClick={()=>changeColor("#be0039")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ff4500'}} onClick={()=>changeColor("#ff4500")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ffa800'}} onClick={()=>changeColor("#ffa800")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ffd635'}} onClick={()=>changeColor("#ffd635")}/></div>
+          <div className='color'><button style={{backgroundColor: '#fff8b8'}} onClick={()=>changeColor("#fff8b8")}/></div>
+          <div className='color'><button style={{backgroundColor: '#00a368'}} onClick={()=>changeColor("#00a368")}/></div>
+          <div className='color'><button style={{backgroundColor: '#00cc78'}} onClick={()=>changeColor("#00cc78")}/></div>
+          <div className='color'><button style={{backgroundColor: '#7eed56'}} onClick={()=>changeColor("#7eed56")}/></div>
+          <div className='color'><button style={{backgroundColor: '#00756f'}} onClick={()=>changeColor("#00756f")}/></div>
+          <div className='color'><button style={{backgroundColor: '#009eaa'}} onClick={()=>changeColor("#009eaa")}/></div>
+          <div className='color'><button style={{backgroundColor: '#00ccc0'}} onClick={()=>changeColor("#00ccc0")}/></div>
+          <div className='color'><button style={{backgroundColor: '#2450a4'}} onClick={()=>changeColor("#2450a4")}/></div>
+          <div className='color'><button style={{backgroundColor: '#3690ea'}} onClick={()=>changeColor("#3690ea")}/></div>
+          <div className='color'><button style={{backgroundColor: '#51e9f4'}} onClick={()=>changeColor("#51e9f4")}/></div>
+          <div className='color'><button style={{backgroundColor: '#493ac1'}} onClick={()=>changeColor("#493ac1")}/></div>
+          <div className='color'><button style={{backgroundColor: '#6a5cff'}} onClick={()=>changeColor("#6a5cff")}/></div>
+          <div className='color'><button style={{backgroundColor: '#94b3ff'}} onClick={()=>changeColor("#94b3ff")}/></div>
+          <div className='color'><button style={{backgroundColor: '#811e9f'}} onClick={()=>changeColor("#811e9f")}/></div>
+          <div className='color'><button style={{backgroundColor: '#b44ac0'}} onClick={()=>changeColor("#b44ac0")}/></div>
+          <div className='color'><button style={{backgroundColor: '#e4abff'}} onClick={()=>changeColor("#e4abff")}/></div>
+          <div className='color'><button style={{backgroundColor: '#de107f'}} onClick={()=>changeColor("#de107f")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ff3881'}} onClick={()=>changeColor("#ff3881")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ff99aa'}} onClick={()=>changeColor("#ff99aa")}/></div>
+          <div className='color'><button style={{backgroundColor: '#6d482f'}} onClick={()=>changeColor("#6d482f")}/></div>
+          <div className='color'><button style={{backgroundColor: '#9c6926'}} onClick={()=>changeColor("#9c6926")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ffb470'}} onClick={()=>changeColor("#ffb470")}/></div>
+          <div className='color'><button style={{backgroundColor: '#000000'}} onClick={()=>changeColor("#000000")}/></div>
+          <div className='color'><button style={{backgroundColor: '#515252'}} onClick={()=>changeColor("#515252")}/></div>
+          <div className='color'><button style={{backgroundColor: '#898d90'}} onClick={()=>changeColor("#898d90")}/></div>
+          <div className='color'><button style={{backgroundColor: '#d4d7d9'}} onClick={()=>changeColor("#d4d7d9")}/></div>
+          <div className='color'><button style={{backgroundColor: '#ffffff'}} onClick={()=>changeColor("#ffffff")}/></div>
         </div>
       </div>
     );
