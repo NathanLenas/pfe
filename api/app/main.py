@@ -96,7 +96,7 @@ def get_bitfield_as_integers(redis_client : Redis, key : str, total_integers:int
 
 
 def get_pixel_color(redis_client:Redis, key:str, x:int, y:int):
-    index = x + y * 100
+    index = x + y * BOARD_SIZE
     byte_index = index // 2
     byte_data = redis_client.getrange(key, byte_index, byte_index)
     if not byte_data:
@@ -177,7 +177,7 @@ async def get_pixel(x: int = Query(..., ge=0, lt=BOARD_SIZE), y: int = Query(...
 
 @app.post("/api/place/draw")
 async def draw_on_board(command: DrawCommand):
-    index = command.x + command.y *  100
+    index = command.x + command.y * BOARD_SIZE
     if not (0 <= command.x <  BOARD_SIZE and  0 <= command.y <  BOARD_SIZE):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
     if not (0 <= command.color <  MAX_COLORS):
