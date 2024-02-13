@@ -38,8 +38,15 @@ else:
     print("Failed to connect to Cassandra. Exiting.")
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
+r = Redis(host='redis', port=6379, decode_responses=False)
 key = 'place_bitmap'
 active_connections: Set[WebSocket] = set()
 
@@ -50,6 +57,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 class DrawCommand(BaseModel):
     x: int
@@ -199,3 +207,15 @@ async def websocket_endpoint(websocket: WebSocket):
         active_connections.remove(websocket)
 # Create bitmap on startup
 create_bitmap(redis_session, key)
+def draw_on_board(command: DrawCommand):
+    index = command.x + command.y * 100
+    if not (0 <= command.x < 100 and 0 <= command.y < 100):
+        raise HTTPException(status_code=400, detail="Coordinates out of bounds")
+    if not (0 <= command.color < 16):
+        raise HTTPException(status_code=400, detail="Invalid color value")
+    set_4bit_value(r, key, index, command.color)
+    return {"message": "Pixel updated successfully"}
+
+
+# Create bitmap on startup
+create_bitmap(r, key)s

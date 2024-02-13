@@ -1,5 +1,6 @@
 version: "3"
 services:
+
   redis:
     image: redis
     restart: always
@@ -8,6 +9,7 @@ services:
       - "6379:6379"
     volumes:
       - place_cache:/data
+
   placeapi:
     image: placeapi
     build:
@@ -23,14 +25,28 @@ services:
       - cassandra
     volumes:
       - ./api/app:/code/app
-  redisinsight:
-    image: redislabs/redisinsight:latest
+
+  # redisinsight:
+  #   image: redislabs/redisinsight:latest
+  #   ports:
+  #     - "8001:8001"
+  #   volumes:
+  #     - place_cache:/data
+  #   depends_on:
+  #     - redis
+
+  placefront:
+    image: placefront
+    build:
+      context: front
+      dockerfile: Dockerfile
     ports:
-      - "8001:8001"
-    volumes:
-      - place_cache:/data
+      - "3000:3000"
+    environment:
+      API_URL: http://localhost:81
     depends_on:
       - redis
+ 
   cassandra:
     image: cassandra
     ports:
@@ -46,6 +62,10 @@ services:
   #     - "3000:3000"
   #   depends_on:
   #     - cassandra
+      - placeapi
+    volumes:
+      - ./front/place-react/src:/code/src
+      - /app/node_modules
 
 volumes:
   place_cache:
