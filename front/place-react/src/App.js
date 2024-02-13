@@ -1,5 +1,6 @@
 import axios from "axios";
 import Canvas from './canvas';
+import Connection from "./connection";
 function App() {
 
   const fetchBoard = async () => {

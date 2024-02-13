@@ -36,7 +36,12 @@ const Canvas = () => {
       const context = canvas.getContext('2d');
       context.fillStyle = color;
       context.fillRect(x*10,y*10,10,10);
+      updateDB();
     };
+
+    const updateDB = (x,y) => {
+      //TODO COMMUNICATION AVEC L'API (et donc la db)
+    }
 
     const changeColor = (newColor) =>{
       setColor(newColor);
