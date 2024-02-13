@@ -4,7 +4,7 @@ services:
   redis:
     image: redis
     restart: always
-    command: redis-server --save 20 1 
+    command: redis-server --save  20  1  
     ports:
       - "6379:6379"
     volumes:
@@ -19,9 +19,10 @@ services:
       - "81:80"
     environment:
       REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_PORT:  6379
     depends_on:
       - redis
+      - cassandra
     volumes:
       - ./api/app:/code/app
 
@@ -44,6 +45,23 @@ services:
     environment:
       API_URL: http://localhost:81
     depends_on:
+      - redis
+ 
+  cassandra:
+    image: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+  # cassandra-web:
+  #   image: delermando/docker-cassandra-web:v0.4.0
+  #   environment:
+  #     - CASSANDRA_HOST=cassandra
+  #     - CASSANDRA_PORT=9042
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - cassandra
       - placeapi
     volumes:
       - ./front/place-react/src:/code/src
@@ -51,3 +69,4 @@ services:
 
 volumes:
   place_cache:
+  cassandra_data:
