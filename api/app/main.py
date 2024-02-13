@@ -3,6 +3,8 @@ from redis import Redis
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
+from auth import *
+
 
 app = FastAPI()
 
