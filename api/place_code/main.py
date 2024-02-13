@@ -2,24 +2,36 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket
 from redis import Redis
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Set
 from fastapi import WebSocket, WebSocketDisconnect
 from cassandra.cluster import Cluster, Session
 import time
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Set
 
-# Connect to redis
+# Connection constants for Redis and Cassandra
 redis_host = os.getenv("REDIS_HOST", "redis") # Get the REDIS_HOST environment variable coming from the docker-compose file
 redis_port = int(os.getenv("REDIS_PORT", 6379))
 
-redis_session = Redis(host=redis_host, port=redis_port, decode_responses=False)
-key = 'place_bitmap' # Key to store the bitmap in Redis
+cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_HOST environment variable coming from the docker-compose file
+cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
 
-def connect_to_cassandra(retries=10):
-    cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_HOST environment variable coming from the docker-compose file
-    cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
+
+# Constants 
+MAX_COLORS =  16
+BOARD_SIZE =  100
+
+# Helper functions
+def setup_middleware(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def connect_to_cassandra(retries:int=10) -> Optional[Session]:
     for attempt in range(retries):
         try:
             cluster = Cluster([cassandra_host], port=cassandra_port)   
@@ -29,35 +41,23 @@ def connect_to_cassandra(retries=10):
             time.sleep(5)  # Wait for 5 seconds before retrying
     raise RuntimeError("Failed to connect to Cassandra after several attempts.")
 
-# Example usage
-cassandra_session = connect_to_cassandra()
+def connect_to_redis(retries:int=10) -> Redis:
+    for attempt in range(retries):
+        try:
+            return Redis(host=redis_host, port=redis_port, decode_responses=False)
+        except Exception as e:
+            time.sleep(5)  # Wait for 5 seconds before retrying
+    raise RuntimeError("Failed to connect to Redis after several attempts.")
 
-if cassandra_session:
-    print("Creating tables")
-    # Create keyspace and table
-    cassandra_session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
-    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color int, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
-    cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
-else:
-    print("Failed to connect to Cassandra. Exiting.")
-
-# API
-
-app = FastAPI()
-
-origins = [
-    "*"
-]
-
-active_connections: Set[WebSocket] = set()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def init_cassandra_db(cassandra_session : Session):
+    if cassandra_session:
+        print("Creating tables")
+        # Create keyspace and table
+        cassandra_session.execute("CREATE KEYSPACE IF NOT EXISTS place WITH replication = {  'class' : 'SimpleStrategy',  'replication_factor' :  1};")
+        cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.tiles (x int, y int, color int, user text, timestamp timestamp, PRIMARY KEY ((x, y)));")
+        cassandra_session.execute("CREATE TABLE IF NOT EXISTS place.last_tile_timestamp (user text PRIMARY KEY, timestamp timestamp);")
+    else:
+        print("Failed to connect to Cassandra. Exiting.")
 
 
 class DrawCommand(BaseModel):
@@ -67,6 +67,14 @@ class DrawCommand(BaseModel):
     user: str
 
     
+def create_bitmap(redis_client : Redis, key : str, total_pixels:int=10000):
+    for i in range(total_pixels):
+        offset = i * 4
+        bf = redis_client.bitfield(key)
+        bf.set('u4', offset, 0)
+        bf.execute()
+        
+
 def set_last_user_timestamp(cassandra_session: Session, user: str, timestamp: Optional[datetime] = None):
     if timestamp is None:
         timestamp = datetime.utcnow()  # Use current UTC time if none provided
@@ -89,18 +97,10 @@ def store_draw_info(cassandra_session: Session, x: int, y: int, color: int, user
     if timestamp is None:
         timestamp = datetime.utcnow()
 
-    cassandra_session.execute("INSERT INTO place.tiles (x, y, color, user, timestamp) VALUES (%s, %s, %s, %s, %s)", (x,y,color,user,timestamp))
-    
-
-def create_bitmap(redis_client, key, total_pixels=10000):
-    for i in range(total_pixels):
-        offset = i * 4
-        bf = redis_client.bitfield(key)
-        bf.set('u4', offset, 0)
-        bf.execute()
+    cassandra_session.execute("INSERT INTO place.tiles (x, y, color, user, timestamp) VALUES (%s, %s, %s, %s, %s)", (x,y,color,user,timestamp))    
 
 
-def get_bitfield_as_integers(redis_client, key, total_integers):
+def get_bitfield_as_integers(redis_client : Redis, key : str, total_integers:int=BOARD_SIZE*BOARD_SIZE):
     bitstring = redis_client.get(key)
     if not bitstring:
         return []
@@ -112,8 +112,8 @@ def get_bitfield_as_integers(redis_client, key, total_integers):
     return bitfield[:total_integers]
 
 
-def get_pixel_color(redis_client, key, x, y):
-    index = x + y * 100
+def get_pixel_color(redis_client:Redis, key:str, x:int, y:int):
+    index = x + y * BOARD_SIZE
     byte_index = index // 2
     byte_data = redis_client.getrange(key, byte_index, byte_index)
     if not byte_data:
@@ -125,7 +125,7 @@ def get_pixel_color(redis_client, key, x, y):
         return byte_data[0] & 0x0F
 
 
-def set_4bit_value(redis_client, key, index, value):
+def set_4bit_value(redis_client:Redis, key:str, index:int, value:int):
     byte_index = index // 2
     current_byte_data = redis_client.getrange(key, byte_index, byte_index)
     current_byte = int.from_bytes(current_byte_data, 'big') if current_byte_data else 0
@@ -135,7 +135,39 @@ def set_4bit_value(redis_client, key, index, value):
     else:
         new_byte = (current_byte & 0xF0) | (value & 0x0F)
     redis_client.setrange(key, byte_index, new_byte.to_bytes(1, byteorder='big'))
+    
+# --------------------------------------------------------------------------------------------
 
+# App instance creation
+app = FastAPI()
+
+# Database connections
+redis_session = connect_to_redis(10)
+cassandra_session = connect_to_cassandra(10)
+
+# Global variables
+key = 'place_bitmap'
+active_connections: Set[WebSocket] = set()
+
+# Middleware setup
+setup_middleware(app)
+
+# Create bitmap on startup
+create_bitmap(redis_session, key)
+
+init_cassandra_db(cassandra_session)
+
+# --------------------------------------------------------------------------------------------
+# Models
+class DrawCommand(BaseModel):
+    x: int
+    y: int
+    color: int
+    user: str
+
+    
+# --------------------------------------------------------------------------------------------
+# Routes
 
 @app.get("/")
 async def read_root():
@@ -151,27 +183,29 @@ async def read_root():
 
 @app.get("/api/place/board-bitmap")
 def get_board_bitmap():
-    return get_bitfield_as_integers(redis_session, key, 10000)
+    return get_bitfield_as_integers(redis_session, key, BOARD_SIZE*BOARD_SIZE)
 
 
 @app.get("/api/place/board-bitmap/pixel/")
-async def get_pixel(x: int = Query(..., ge=0, lt=100), y: int = Query(..., ge=0, lt=100)):
+async def get_pixel(x: int = Query(..., ge=0, lt=BOARD_SIZE), y: int = Query(..., ge=0, lt=BOARD_SIZE)):
     color = get_pixel_color(redis_session, key, x, y)
     return {"pixel_color": color}
 
 
 @app.post("/api/place/draw")
 async def draw_on_board(command: DrawCommand):
-    index = command.x + command.y *  100
-    if not (0 <= command.x <  100 and  0 <= command.y <  100):
+    index = command.x + command.y * BOARD_SIZE
+    if not (0 <= command.x <  BOARD_SIZE and  0 <= command.y <  BOARD_SIZE):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
-    if not (0 <= command.color <  16):
+    if not (0 <= command.color <  MAX_COLORS):
         raise HTTPException(status_code=400, detail="Invalid color value")
     
-    # Update the last tile timestamp for the user
-    set_last_user_timestamp(cassandra_session, command.user, command.timestamp)
     
-    store_draw_info(cassandra_session, command.x, command.y, command.color, command.user, None)
+    ts = datetime.utcnow()
+    # Update the last tile timestamp for the user
+    set_last_user_timestamp(cassandra_session, command.user, ts)
+    
+    store_draw_info(cassandra_session, command.x, command.y, command.color, command.user, ts)
     # Set the pixel color in Redis
     set_4bit_value(redis_session, key, index, command.color)
     
@@ -183,7 +217,7 @@ async def draw_on_board(command: DrawCommand):
             "y": command.y,
             "color": command.color,
             "user": command.user,
-            "timestamp": command.timestamp.isoformat() if command.timestamp else None
+            "timestamp": ts.isoformat()
         })
         
     return {"message": "Pixel updated successfully"}
@@ -203,19 +237,5 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
-            # Handle any incoming messages if needed
     except WebSocketDisconnect:
         active_connections.remove(websocket)
-
-def draw_on_board(command: DrawCommand):
-    index = command.x + command.y * 100
-    if not (0 <= command.x < 100 and 0 <= command.y < 100):
-        raise HTTPException(status_code=400, detail="Coordinates out of bounds")
-    if not (0 <= command.color < 16):
-        raise HTTPException(status_code=400, detail="Invalid color value")
-    set_4bit_value(redis_session, key, index, command.color)
-    return {"message": "Pixel updated successfully"}
-
-
-# Create bitmap on startup
-create_bitmap(redis_session, key)
