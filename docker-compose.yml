@@ -1,39 +1,50 @@
 version: "3"
 services:
 
-  redis:
-    image: redis
-    restart: always
-    command: redis-server --save  20  1  
-    ports:
-      - "6379:6379"
-    volumes:
-      - place_cache:/data
-
-  placeapi:
-    image: placeapi
+  nginx:
+    image: nginx:latest
     build:
       context: api
-      dockerfile: Dockerfile
+    volumes:
+      - ./api/nginx.conf:/etc/nginx/nginx.conf
     ports:
-      - "81:80"
+      - "80:80"
+    depends_on:
+      - place_api
+      - auth_api
+
+  place_api:
+    image: place_api
+    build:
+      context: api
+      dockerfile: place_Dockerfile
     environment:
       REDIS_HOST: redis
-      REDIS_PORT:  6379
+      REDIS_PORT: 6379
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
     depends_on:
       - redis
       - cassandra
     volumes:
-      - ./api/app:/code/app
+      - ./api/place_code:/code/app
+    expose:
+      - "8000"
 
-  # redisinsight:
-  #   image: redislabs/redisinsight:latest
-  #   ports:
-  #     - "8001:8001"
-  #   volumes:
-  #     - place_cache:/data
-  #   depends_on:
-  #     - redis
+  auth_api:
+    image: auth_api
+    build:
+      context: api
+      dockerfile: auth_Dockerfile
+    environment:
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+    depends_on:
+      - cassandra
+    volumes:
+      - ./api/auth_code:/code/app
+    expose:
+      - "8000"
 
   placefront:
     image: placefront
@@ -43,9 +54,21 @@ services:
     ports:
       - "3000:3000"
     environment:
-      API_URL: http://localhost:81
+      API_URL: http://localhost:80
     depends_on:
       - redis
+    volumes:
+      - ./front/place-react/src:/code/src
+      - /app/node_modules
+    
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --save  20  1  
+    ports:
+      - "6379:6379"
+    volumes:
+      - place_cache:/data
  
   cassandra:
     image: cassandra
@@ -53,19 +76,6 @@ services:
       - "9042:9042"
     volumes:
       - cassandra_data:/var/lib/cassandra
-  # cassandra-web:
-  #   image: delermando/docker-cassandra-web:v0.4.0
-  #   environment:
-  #     - CASSANDRA_HOST=cassandra
-  #     - CASSANDRA_PORT=9042
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - cassandra
-      - placeapi
-    volumes:
-      - ./front/place-react/src:/code/src
-      - /app/node_modules
 
 volumes:
   place_cache:

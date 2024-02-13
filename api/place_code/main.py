@@ -6,19 +6,23 @@ from typing import Set
 from fastapi import WebSocket, WebSocketDisconnect
 from cassandra.cluster import Cluster, Session
 import time
-import typing
+import os
 from datetime import datetime
 from typing import Optional
 
-app = FastAPI()
-
 # Connect to redis
-redis_session = Redis(host='redis', port=6379, decode_responses=False)
+redis_host = os.getenv("REDIS_HOST", "redis") # Get the REDIS_HOST environment variable coming from the docker-compose file
+redis_port = int(os.getenv("REDIS_PORT", 6379))
+
+redis_session = Redis(host=redis_host, port=redis_port, decode_responses=False)
+key = 'place_bitmap' # Key to store the bitmap in Redis
 
 def connect_to_cassandra(retries=10):
+    cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_HOST environment variable coming from the docker-compose file
+    cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
     for attempt in range(retries):
         try:
-            cluster = Cluster(['cassandra'])   
+            cluster = Cluster([cassandra_host], port=cassandra_port)   
             session = cluster.connect()  
             return session
         except Exception as e:
@@ -37,22 +41,19 @@ if cassandra_session:
 else:
     print("Failed to connect to Cassandra. Exiting.")
 
+# API
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI()
 
-r = Redis(host='redis', port=6379, decode_responses=False)
-key = 'place_bitmap'
+origins = [
+    "*"
+]
+
 active_connections: Set[WebSocket] = set()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -205,17 +206,16 @@ async def websocket_endpoint(websocket: WebSocket):
             # Handle any incoming messages if needed
     except WebSocketDisconnect:
         active_connections.remove(websocket)
-# Create bitmap on startup
-create_bitmap(redis_session, key)
+
 def draw_on_board(command: DrawCommand):
     index = command.x + command.y * 100
     if not (0 <= command.x < 100 and 0 <= command.y < 100):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
     if not (0 <= command.color < 16):
         raise HTTPException(status_code=400, detail="Invalid color value")
-    set_4bit_value(r, key, index, command.color)
+    set_4bit_value(redis_session, key, index, command.color)
     return {"message": "Pixel updated successfully"}
 
 
 # Create bitmap on startup
-create_bitmap(r, key)s
+create_bitmap(redis_session, key)

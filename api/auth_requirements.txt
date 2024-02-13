@@ -1,8 +1,7 @@
 fastapi
 uvicorn[standard]
-redis
 cassandra-driver
 python-jose[cryptography]
-passlib[bcrypt]
+bcrypt
 python-multipart
 requests
