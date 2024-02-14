@@ -5,12 +5,12 @@ FROM node:latest
 WORKDIR /app
 
 # add `/app/node_modules/.bin` to $PATH
-ENV PATH /place-react/node_modules/.bin:$PATH
+ENV PATH /app/node_modules/.bin:$PATH
 
 # install app dependencies
 COPY place-react/package.json ./
 COPY place-react/package-lock.json ./
-RUN npm install react react-scripts react-router react-router-dom
+RUN npm install
 
 # add app
 COPY ./place-react/ ./

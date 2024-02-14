@@ -57,11 +57,8 @@ services:
       - "3000:3000"
     environment:
       API_URL: http://localhost:80
-    depends_on:
-      - redis
     volumes:
       - ./front/place-react/src:/code/src
-      - /app/node_modules
     
   redis:
     image: redis
