@@ -9,17 +9,28 @@ import os
 from datetime import datetime
 from typing import Optional, Set
 
+
+## Constants 
+
+# Board
+MAX_COLORS =  16
+BOARD_SIZE =  100
+
+# Token constants 
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set.")
+
+ALGORITHM = os.getenv("ALGORITHM")
+if not ALGORITHM:
+    raise RuntimeError("ALGORITHM environment variable is not set.")
+
 # Connection constants for Redis and Cassandra
 redis_host = os.getenv("REDIS_HOST", "redis") # Get the REDIS_HOST environment variable coming from the docker-compose file
 redis_port = int(os.getenv("REDIS_PORT", 6379))
 
 cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_HOST environment variable coming from the docker-compose file
 cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
-
-
-# Constants 
-MAX_COLORS =  16
-BOARD_SIZE =  100
 
 # Helper functions
 def setup_middleware(app: FastAPI):

@@ -25,10 +25,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
-SECRET_KEY = "a60ff845e66b93de1642ca984787bf106a0d91b522c1b0452db5a0bd1f9f0918"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set.")
+
+ALGORITHM = os.getenv("ALGORITHM")
+if not ALGORITHM:
+    raise RuntimeError("ALGORITHM environment variable is not set.")
+
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 
