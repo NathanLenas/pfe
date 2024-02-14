@@ -1,11 +1,13 @@
 import axios from "axios";
 import Canvas from './canvas';
 import Connection from "./connection";
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Register from "./register";
 function App() {
 
   const fetchBoard = async () => {
     try {
-        const response = await axios("http://localhost:81/api/place/board-bitmap");
+        const response = await axios("http://localhost:80/api/place/board-bitmap");
         console.log(response.data);
     } catch (error) {
         console.error("Error fetching board:", error);
@@ -15,7 +17,13 @@ function App() {
 
   fetchBoard();
   return (
-    <Canvas/>
+    <Router>
+      <Routes>
+    <Route path="/" element={<Connection/>}/>
+    <Route path="/canvas" element={<Canvas/>}/>
+    <Route path="/register" element={<Register/>}/>
+    </Routes>
+    </Router>
   );
 }
 

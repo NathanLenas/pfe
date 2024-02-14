@@ -10,7 +10,7 @@
     border: 1px solid black;
     margin-bottom: 2px;
 }
-button{
+.colorButton{
     width: 60px;
     height: 30px;
     border: none;

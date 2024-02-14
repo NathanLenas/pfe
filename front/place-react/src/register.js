@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Connection = () => {
+const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
@@ -19,11 +19,10 @@ const Connection = () => {
     navigate('/canvas');
     console.log('Form submitted:', formData);
   };
-
   return (
     <div>
       <form onSubmit={handleSubmit}>
-      <p>Please enter your login and password</p>
+        <p>Create new account</p>
         <label>
           Name:
           <input
@@ -42,11 +41,11 @@ const Connection = () => {
             onChange={handleChange}
           />
         </label>
-        <button type="submit">Connect</button>
+        <button type="submit">Register</button>
       </form>
-      <button onClick={() => navigate('/register')}>Don't have an account?</button>
+      <button onClick={() => navigate('/')}>Already have an account</button>
     </div>
   );
 }
 
-export default Connection;
+export default Register;
