@@ -3,13 +3,14 @@ import { useCookies } from 'react-cookie';
 import axios from "axios";
 import './canvas.css';
 import { useNavigate } from 'react-router-dom';
+import {translateNumberTocolor, translatecolorToNumber} from './translate';
 
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [color, setColor] = useState("000000");
-  const [timer, setTimer] = useState('0');
-  const [date, setDate] = useState(null);
+  const [timer, setTimer] = useState(0);
+  const [date, setDate] = useState(Date.now());
   const [user, setUser] = useState(null);
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
@@ -46,7 +47,7 @@ const Canvas = () => {
   useEffect(() => { //Colorise the canvas
     if (ctx) {
       //API REQUEST fetch l'image en entier et la stocker dans baseImage
-      const baseImage = "#ffffff"
+      const baseImage = translateNumberTocolor(0)
       ctx.clearRect(0, 0, 1000, 1000); // Clear canvas
       ctx.save(); // Save the current state of the canvas context
       ctx.fillStyle = baseImage;
@@ -78,10 +79,13 @@ const Canvas = () => {
       setDate(Date.now());
       setTimer(300000);
       updateDB(x, y, date);
+    } else {
+      console.log("marchpas")
     }
   };
 
   const updateDB = (x, y, date) => {
+    const numColor = translateNumberTocolor(color);
     //API REQUEST: mettre le point dans la db avec la variable user qui est globale
     // try {
     //   const response = axios(API_URL + "/api/place/draw");
@@ -92,9 +96,10 @@ const Canvas = () => {
     //Envoi des coordonnée et de la date à l'API
   }
 
+
   useEffect(() => {
     const intervalId = setInterval(() => {
-
+      console.log(timer)
       if (timer > 999) {
 
         setTimer(timer - 1000);
@@ -105,6 +110,7 @@ const Canvas = () => {
 
     return () => clearInterval(intervalId);
   }, [timer]); // Re-run effect when seconds change
+
 
   const changeColor = (newColor) => {
     setColor(newColor);
