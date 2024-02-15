@@ -170,9 +170,11 @@ def decode_jwt(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            print("Username is None")
             raise credentials_exception
         token_data = TokenData(username=username)
     except JWTError:
+        print("JWTError")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     return token_data
     
@@ -222,22 +224,24 @@ async def verify_token(request: Request, call_next):
     # Extract the token from the Authorization header
     auth_header = request.headers.get('Authorization')
     if not auth_header:
+        print("No auth header")
         return PlainTextResponse("You are not authenticated. Please provide a token in the 'Authorization' header.", status_code=401)
     
     # Decode and verify the token
     try:
         token_data = decode_jwt(auth_header)
     except Exception as e:
+        print("Token error : ", e)
         return PlainTextResponse("Your token is invalid. Please provide a valid token in the 'Authorization' header.", status_code=401)
     
     # Attach the token data to the request state
     request.state.token_data = token_data
-    
     response = await call_next(request)
     return response
 
 @app.get("/place/username")
-async def protected_route(token_data: TokenData = Depends(decode_jwt)):
+async def protected_route(request: Request):
+    token_data = request.state.token_data
     return {"message": f"Hello {token_data.username}"}
 
 @app.get("/")
