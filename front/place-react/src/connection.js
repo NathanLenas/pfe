@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CookiesProvider, useCookies } from "react-cookie";
 
 const Connection = () => {
   const navigate = useNavigate();
+  const [cookies, setCookie] = useCookies(["Token"]);
   const [formData, setFormData] = useState({
     name: '',
     password: ''
