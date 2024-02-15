@@ -16,7 +16,7 @@ const Canvas = () => {
   const [seconds, setSeconds] = useState(0);
 
   
-  //const API_URL = process.env.API_URL;
+  const API_URL = process.env.API_URL;
   const [cookies, removeCookie] = useCookies(['token']); // Get and set cookies
   const navigate = useNavigate();
 
@@ -24,6 +24,7 @@ const Canvas = () => {
  
   useEffect(() => {//Vérifie que l'utilisateur
     const getTime = () => {
+      
       //REQUEST API POUR SET date à la valeur de dernier pixel de l'utilisateur
       setTimer(Date.now() - date)
     }

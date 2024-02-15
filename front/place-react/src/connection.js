@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 import DOMPurify from 'dompurify';
+import api from './api_utils';
 
 const Connection = () => {
   const [cookies, setCookie] = useCookies(['token']); // Initialize cookies
@@ -31,10 +32,11 @@ const Connection = () => {
       name: DOMPurify.sanitize(formData.name),
       password: DOMPurify.sanitize(formData.password)
     };
-    //API REQUEST comparer les logins à ceux de la db pour vérifier que les logins sont bons
 
-    //API REQUEST obtenir un token qu'on puisse assigner au cookie (à la place de sanitizedData.name)
-    setCookie('token', JSON.stringify(sanitizedData.name), { path: '/' });
+    const token = api.login(sanitizedData.name, sanitizedData.password);
+
+    console.log("token= " + token);
+    setCookie('token', token, { path: '/' });
     navigate('/canvas');
     console.log('Form submitted:', formData);
   };

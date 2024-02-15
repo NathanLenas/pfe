@@ -56,7 +56,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      API_URL: http://localhost:80
+      REACT_APP_API_URL: http://localhost:80
     volumes:
       - ./front/place-react/src:/code/src
     

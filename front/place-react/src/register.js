@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 import DOMPurify from 'dompurify';
+import api from './api_utils';
 
 const Register = () => {
   const [cookies] = useCookies(['token']); // Initialize cookies
@@ -31,7 +32,8 @@ const Register = () => {
       name: DOMPurify.sanitize(formData.name),
       password: DOMPurify.sanitize(formData.password)
     };
-    //API REQUEST rentrer les logins dans la DB (sanitizedData.name et sanitizedData.password)
+    
+    api.register(sanitizedData.name, sanitizedData.password);
 
     navigate('/');
 
