@@ -1,23 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useCookies } from 'react-cookie';
+import DOMPurify from 'dompurify';
 
 const Register = () => {
+  const [cookies] = useCookies(['token']); // Initialize cookies
   const navigate = useNavigate();
+
+  useEffect(() => {
+
+    if (cookies.token) {
+      navigate('/canvas');
+    }
+  }, [cookies.token, navigate]);
+
   const [formData, setFormData] = useState({
     name: '',
     password: ''
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e) => { //updates user and password according to what the user typed
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    //TODO COMMUNICATION AVEC L'API
-    navigate('/canvas');
-    console.log('Form submitted:', formData);
+
+    const sanitizedData = {
+      name: DOMPurify.sanitize(formData.name),
+      password: DOMPurify.sanitize(formData.password)
+    };
+    //API REQUEST rentrer les logins dans la DB (sanitizedData.name et sanitizedData.password)
+
+    navigate('/');
+
   };
   return (
     <div>
