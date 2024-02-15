@@ -93,7 +93,6 @@ class DrawCommand(BaseModel):
     x: int
     y: int
     color: int
-    user: str
 
     
 def create_bitmap(redis_client : Redis, key : str, total_pixels:int=10000):
@@ -205,7 +204,6 @@ class DrawCommand(BaseModel):
     x: int
     y: int
     color: int
-    user: str
 
     
 # --------------------------------------------------------------------------------------------
@@ -268,7 +266,7 @@ async def get_pixel(x: int = Query(..., ge=0, lt=BOARD_SIZE), y: int = Query(...
 
 
 @app.post("/api/place/draw")
-async def draw_on_board(command: DrawCommand):
+async def draw_on_board(command: DrawCommand, request: Request):
     index = command.x + command.y * BOARD_SIZE
     if not (0 <= command.x <  BOARD_SIZE and  0 <= command.y <  BOARD_SIZE):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
@@ -278,9 +276,9 @@ async def draw_on_board(command: DrawCommand):
     
     ts = datetime.utcnow()
     # Update the last tile timestamp for the user
-    set_last_user_timestamp(cassandra_session, command.user, ts)
+    set_last_user_timestamp(cassandra_session, request.state.token_data.username, ts)
     
-    store_draw_info(cassandra_session, command.x, command.y, command.color, command.user, ts)
+    store_draw_info(cassandra_session, command.x, command.y, command.color, request.state.token_data.username, ts)
     # Set the pixel color in Redis
     set_4bit_value(redis_session, key, index, command.color)
     
@@ -291,15 +289,15 @@ async def draw_on_board(command: DrawCommand):
             "x": command.x,
             "y": command.y,
             "color": command.color,
-            "user": command.user,
+            "user": request.state.token_data.username,
             "timestamp": ts.isoformat()
         })
         
     return {"message": "Pixel updated successfully"}
 
-@app.get("/api/place/last-user-timestamp/{user}")
-async def get_user_last_timestamp(user: str):
-    timestamp = get_last_user_timestamp(cassandra_session, user)
+@app.get("/api/place/last-user-timestamp/")
+async def get_user_last_timestamp(request: Request):
+    timestamp = get_last_user_timestamp(cassandra_session, request.state.token_data.username)
     if timestamp is None:
         raise HTTPException(status_code=404, detail="No timestamp found for user")
     return {"timestamp": timestamp}
