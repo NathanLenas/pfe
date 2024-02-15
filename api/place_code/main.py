@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException, Query, WebSocket
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, status
+from fastapi.responses import PlainTextResponse
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from redis import Redis
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,6 +35,15 @@ redis_port = int(os.getenv("REDIS_PORT", 6379))
 cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_HOST environment variable coming from the docker-compose file
 cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
 
+# Define JWT settings
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+
+credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
 # Helper functions
 def setup_middleware(app: FastAPI):
     app.add_middleware(
@@ -41,6 +53,11 @@ def setup_middleware(app: FastAPI):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+class TokenData(BaseModel):
+    username: str = None
+
 
 def connect_to_cassandra(retries:int=10) -> Optional[Session]:
     for attempt in range(retries):
@@ -58,6 +75,7 @@ def connect_to_redis(retries:int=10) -> Redis:
             return Redis(host=redis_host, port=redis_port, decode_responses=False)
         except Exception as e:
             time.sleep(5)  # Wait for 5 seconds before retrying
+            print(e)
     raise RuntimeError("Failed to connect to Redis after several attempts.")
 
 def init_cassandra_db(cassandra_session : Session):
@@ -146,6 +164,17 @@ def set_4bit_value(redis_client:Redis, key:str, index:int, value:int):
     else:
         new_byte = (current_byte & 0xF0) | (value & 0x0F)
     redis_client.setrange(key, byte_index, new_byte.to_bytes(1, byteorder='big'))
+
+def decode_jwt(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    return token_data
     
 # --------------------------------------------------------------------------------------------
 
@@ -179,6 +208,37 @@ class DrawCommand(BaseModel):
     
 # --------------------------------------------------------------------------------------------
 # Routes
+
+app = FastAPI()
+
+@app.middleware("http")
+async def verify_token(request: Request, call_next):
+    # Allow access to the documentation without a token
+    path = request.url.path
+    if path == "/redoc" or path == "/docs" or path == "/openapi.json" or path == "/" or path == "/auth/token":
+        response = await call_next(request)
+        return response
+    
+    # Extract the token from the Authorization header
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return PlainTextResponse("You are not authenticated. Please provide a token in the 'Authorization' header.", status_code=401)
+    
+    # Decode and verify the token
+    try:
+        token_data = decode_jwt(auth_header)
+    except Exception as e:
+        return PlainTextResponse("Your token is invalid. Please provide a valid token in the 'Authorization' header.", status_code=401)
+    
+    # Attach the token data to the request state
+    request.state.token_data = token_data
+    
+    response = await call_next(request)
+    return response
+
+@app.get("/place/username")
+async def protected_route(token_data: TokenData = Depends(decode_jwt)):
+    return {"message": f"Hello {token_data.username}"}
 
 @app.get("/")
 async def read_root():

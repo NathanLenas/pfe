@@ -1,0 +1,71 @@
+version: "3"
+services:
+
+  place_api:
+    image: place_api
+    build:
+      context: .
+      dockerfile: place_Dockerfile
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      SECRET_KEY: a60ff845e66b93de1642ca984787bf106a0d91b522c1b0452db5a0bd1f9f0918
+      ALGORITHM: HS256
+    depends_on:
+      - redis
+      - cassandra
+    volumes:
+      - ../api/place_code:/code/app
+    ports:
+      - "80:80"
+
+  auth_api:
+    image: auth_api
+    build:
+      context: .
+      dockerfile: auth_Dockerfile
+    environment:
+      CASSANDRA_HOST: cassandra
+      CASSANDRA_PORT: 9042
+      SECRET_KEY: a60ff845e66b93de1642ca984787bf106a0d91b522c1b0452db5a0bd1f9f0918
+      ALGORITHM: HS256
+    depends_on:
+      - cassandra
+    volumes:
+      - ../api/auth_code:/code/app
+    ports:
+      - "81:81"
+
+  # placefront:
+  #   image: placefront
+  #   build:
+  #     context: ../front
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     API_URL: http://localhost:80
+  #   volumes:
+  #     - ../front/place-react/src:/code/src
+    
+  redis:
+    image: redis
+    restart: always
+    command: redis-server --save  20  1  
+    ports:
+      - "6379:6379"
+    volumes:
+      - place_cache:/data
+ 
+  cassandra:
+    image: cassandra
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+
+volumes:
+  place_cache:
+  cassandra_data:

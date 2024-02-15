@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import time
 from typing import Annotated
+import uuid
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -35,7 +36,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 if not ALGORITHM:
     raise RuntimeError("ALGORITHM environment variable is not set.")
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 3000
 
 
 def connect_to_cassandra(retries=10):
@@ -66,8 +67,7 @@ if cassandra_session:
     cassandra_session.execute("""USE user_auth;""")
     cassandra_session.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id text PRIMARY KEY,
-            username text,
+            username text PRIMARY KEY,
             full_name text,
             email text,
             hashed_password text,
@@ -79,8 +79,8 @@ if cassandra_session:
 
     # Insert user test data
     cassandra_session.execute("""
-        INSERT INTO users (id, username, full_name, email, hashed_password, disabled, remaining_time, admin)
-        VALUES ('0', 'johndoe', 'John Doe', 'johndoe@example.com', '$2b$12$sInJaNyp4RNpq7s0I3NxC.eo2O5txsNye7qA3ICf.Wo41ghso/aRe', false, 0, false);
+        INSERT INTO users (username, full_name, email, hashed_password, disabled, remaining_time, admin)
+        VALUES ('johndoe', 'John Doe', 'johndoe@example.com', '$2b$12$sInJaNyp4RNpq7s0I3NxC.eo2O5txsNye7qA3ICf.Wo41ghso/aRe', false, 0, false);
     """)
 else:
     print("Failed to connect to Cassandra. Exiting.")
@@ -110,19 +110,22 @@ def get_password_hash(password):
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password=pwd_bytes, salt=salt)
+    hashed_password = hashed_password.decode('utf-8')
     return hashed_password
 
 # Check if the provided password matches the stored password (hashed)
 def verify_password(plain_password, hashed_password):
     password_byte_enc = plain_password.encode('utf-8')
-    return bcrypt.checkpw(password = password_byte_enc , hashed_password = hashed_password)
+    hashed_password_byte_enc = hashed_password.encode('utf-8')
+    return bcrypt.checkpw(password = password_byte_enc , hashed_password = hashed_password_byte_enc)
 
 
 def get_user(db: Session, username: str):
     query = "SELECT * FROM users WHERE username = %s"
     user = db.execute(query, [username]).one()
     if user:
-        return UserInDB(**user)
+        user_dict = user._asdict()
+        return UserInDB(**user_dict)
 
 def authenticate_user(db: Session, username: str, password: str):
     user = get_user(db, username)
@@ -201,3 +204,30 @@ async def read_remaining_time_for_place(
     current_user: Annotated[User, Depends(get_current_active_user)]
 ):
     return [{"remaining_time": current_user.remaining_time_for_place}]
+
+
+@app.post("/auth/register")
+async def register_new_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
+    # Extract user details from form_data
+    username = form_data.username
+    password = form_data.password
+
+    # Check if the user already exists
+    existing_user = get_user(cassandra_session, username)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken.",
+        )
+    
+    # Hash the password
+    hashed_password = get_password_hash(password)
+
+    # Store the user in the database
+    insert_query = """
+        INSERT INTO users (username, full_name, email, hashed_password, disabled, remaining_time, admin)
+        VALUES (%s, %s, %s, %s, false,  0, false);
+    """
+    cassandra_session.execute(insert_query, (username, "", "", hashed_password))
+    
+    return {"detail": f"User '{username}' registered successfully."}
