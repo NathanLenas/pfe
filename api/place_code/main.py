@@ -60,13 +60,13 @@ class TokenData(BaseModel):
 
 
 def connect_to_cassandra(retries:int=10) -> Optional[Session]:
-    for attempt in range(retries):
+    for _ in range(retries):
         try:
             cluster = Cluster([cassandra_host], port=cassandra_port)   
             session = cluster.connect()  
             return session
         except Exception as e:
-            time.sleep(5)  # Wait for 5 seconds before retrying
+            time.sleep(10)  # Wait for 10 seconds before retrying
     raise RuntimeError("Failed to connect to Cassandra after several attempts.")
 
 def connect_to_redis(retries:int=10) -> Redis:
@@ -74,7 +74,7 @@ def connect_to_redis(retries:int=10) -> Redis:
         try:
             return Redis(host=redis_host, port=redis_port, decode_responses=False)
         except Exception as e:
-            time.sleep(5)  # Wait for 5 seconds before retrying
+            time.sleep(10)  # Wait for 10 seconds before retrying
             print(e)
     raise RuntimeError("Failed to connect to Redis after several attempts.")
 

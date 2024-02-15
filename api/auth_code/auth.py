@@ -50,7 +50,7 @@ def connect_to_cassandra(retries=10):
             print("Connected to Cassandra")
             return session
         except Exception as e:
-            time.sleep(5)  # Wait for 5 seconds before retrying
+            time.sleep(10)  # Wait for 10 seconds before retrying
             print(e)
     print("Failed to connect to Cassandra after several attempts.")
     raise RuntimeError("Failed to connect to Cassandra after several attempts.")
@@ -191,7 +191,6 @@ async def login_for_access_token(
     )
     return Token(access_token=access_token, token_type="bearer")
 
-
 @app.get("/auth/users/me/", response_model=User)
 async def read_users_me(
     current_user: Annotated[User, Depends(get_current_active_user)]
@@ -231,3 +230,7 @@ async def register_new_user(form_data: Annotated[OAuth2PasswordRequestForm, Depe
     cassandra_session.execute(insert_query, (username, "", "", hashed_password))
     
     return {"detail": f"User '{username}' registered successfully."}
+
+print("Issuing test token :")
+access_token = create_access_token(data={"sub": "johndoe"}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+print(Token(access_token=access_token, token_type="bearer"))
