@@ -8,7 +8,7 @@ import api from './api_utils';
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
-  const [color, setColor] = useState("000000");
+  const [color, setColor] = useState("#000000");
   const [timer, setTimer] = useState(0);
   const [date, setDate] = useState(Date.now());
   const [user, setUser] = useState(null);
@@ -223,7 +223,8 @@ const Canvas = () => {
         style={{ border: '1px solid black' }}
         onClick={handleCanvasClick}
       />
-       <div className='choiceColor'>
+
+       <div className='container'>
         <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(15) }} onClick={() => changeColor(translateNumberTocolor(15))} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(14)  }} onClick={() => changeColor(translateNumberTocolor(14) )} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(13)  }} onClick={() => changeColor(translateNumberTocolor(13) )} /></div>
@@ -241,16 +242,16 @@ const Canvas = () => {
         <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(1)  }} onClick={() => changeColor(translateNumberTocolor(1) )} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(0)  }} onClick={() => changeColor(translateNumberTocolor(0) )} /></div>
       </div>
-
-
+      <div className='align'>
+      <p>Next Click in :</p>
       <p>{minutes}</p>
       <span>Minutes</span>
 
       <p>{seconds}</p>
       <span>Seconds</span>
 
-      <button onClick={handleDisconnect}>Disconnect</button>
-
+      <button className='connect' onClick={handleDisconnect}>Disconnect</button>
+      </div>
     </div>
 
   );
