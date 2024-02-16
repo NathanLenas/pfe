@@ -223,24 +223,25 @@ const Canvas = () => {
         style={{ border: '1px solid black' }}
         onClick={handleCanvasClick}
       />
-      <div className='choiceColor'>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#6a5cff' }} onClick={() => changeColor("#6a5cff")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#94b3ff' }} onClick={() => changeColor("#94b3ff")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#811e9f' }} onClick={() => changeColor("#811e9f")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#b44ac0' }} onClick={() => changeColor("#b44ac0")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#e4abff' }} onClick={() => changeColor("#e4abff")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#de107f' }} onClick={() => changeColor("#de107f")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ff3881' }} onClick={() => changeColor("#ff3881")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ff99aa' }} onClick={() => changeColor("#ff99aa")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#6d482f' }} onClick={() => changeColor("#6d482f")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#9c6926' }} onClick={() => changeColor("#9c6926")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffb470' }} onClick={() => changeColor("#ffb470")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#000000' }} onClick={() => changeColor("#000000")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#515252' }} onClick={() => changeColor("#515252")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#898d90' }} onClick={() => changeColor("#898d90")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#d4d7d9' }} onClick={() => changeColor("#d4d7d9")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffffff' }} onClick={() => changeColor("#ffffff")} /></div>
+       <div className='choiceColor'>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(15) }} onClick={() => changeColor(translateNumberTocolor(15))} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(14)  }} onClick={() => changeColor(translateNumberTocolor(14) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(13)  }} onClick={() => changeColor(translateNumberTocolor(13) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(12)  }} onClick={() => changeColor(translateNumberTocolor(12) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(11)  }} onClick={() => changeColor(translateNumberTocolor(11) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(10)  }} onClick={() => changeColor(translateNumberTocolor(10) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(9)  }} onClick={() => changeColor(translateNumberTocolor(9) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(8)  }} onClick={() => changeColor(translateNumberTocolor(8) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(7)  }} onClick={() => changeColor(translateNumberTocolor(7) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(6)  }} onClick={() => changeColor(translateNumberTocolor(6) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(5)  }} onClick={() => changeColor(translateNumberTocolor(5) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(4)  }} onClick={() => changeColor(translateNumberTocolor(4) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(3)  }} onClick={() => changeColor(translateNumberTocolor(3) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(2)  }} onClick={() => changeColor(translateNumberTocolor(2) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(1)  }} onClick={() => changeColor(translateNumberTocolor(1) )} /></div>
+        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(0)  }} onClick={() => changeColor(translateNumberTocolor(0) )} /></div>
       </div>
+
 
       <p>{minutes}</p>
       <span>Minutes</span>
