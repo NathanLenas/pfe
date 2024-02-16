@@ -5,6 +5,7 @@ import './canvas.css';
 import { useNavigate } from 'react-router-dom';
 import {translateNumberTocolor, translatecolorToNumber} from './translate';
 import api from './api_utils';
+
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
@@ -198,7 +199,6 @@ const Canvas = () => {
     const intervalId = setInterval(() => {
       console.log(timer)
       if (timer > 999) {
-
         setTimer(timer - 1000);
         setMinutes(Math.floor((timer / 1000 / 60) % 60));
         setSeconds(Math.floor((timer / 1000) % 60));
@@ -207,7 +207,6 @@ const Canvas = () => {
 
     return () => clearInterval(intervalId);
   }, [timer]); // Re-run effect when seconds change
-
 
   const changeColor = (newColor) => {
     setColor(newColor);

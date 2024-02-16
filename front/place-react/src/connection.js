@@ -14,7 +14,6 @@ const Connection = () => {
     }
   }, [cookies.token, navigate]);
 
-
   const [formData, setFormData] = useState({
     name: '',
     password: ''
