@@ -90,7 +90,8 @@ const login = async (name, password) => {
 
 const get_websocket = async () => {
     try {
-        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/ws`);
+        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
+        console.log("ws:" + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
         return ws;
     } catch (error) {
         console.error("Error creating websocket:", error);

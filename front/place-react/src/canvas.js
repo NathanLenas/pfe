@@ -83,39 +83,68 @@ const Canvas = () => {
     }
   }, [ctx]);
   
+   // Function to initialize the WebSocket connection
+   const initializeWebSocket = () => {
+
+      // Define a function to handle incoming messages
+      const handleMessage = (event) => {
+        console.log("Message received:");
+        console.log(event.data);
+        const data = JSON.parse(event.data);
+        // Assuming the data contains x, y, and color properties
+        const { x, y, color } = data;
+        
+        console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
+        const colorCode = translateNumberTocolor(color);
+        if (colorCode !== -1) {
+          // Update the canvas with the new pixel color
+          if (ctx) {
+            ctx.fillStyle = colorCode;
+            ctx.fillRect(x *  10, y *  10,  10,  10);
+          }
+        }
+      };
+
+     // Create a WebSocket connection to the server
+     const socket = api.get_websocket("api/place/board-bitmap/ws");
+
+
+      // Set up event listeners
+      socket.onopen = () => {
+        console.log("WebSocket connection opened");
+      };
+      socket.onmessage = handleMessage;
+      socket.onclose = (event) => {
+        console.log("WebSocket connection closed");
+      };
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      socket.then((ws) => {
+        // Add a listener for the connection event
+        ws.onopen = () => {
+
+        };
+
+        // Add a listener for the message event
+        ws.onmessage = handleMessage;
+
+      });
+  
+   
+    // Store the WebSocket instance in state
+    setWs(socket);
+  };
+
   useEffect(() => {
-    // Create a WebSocket connection to the server
-    // const socket = api.get_websocket("api/place/board-bitmap/ws");
-  
-    // // Define a function to handle incoming messages
-    // const handleMessage = (event) => {
-    //   const data = JSON.parse(event.data);
-    //   // Assuming the data contains x, y, and color properties
-    //   const { x, y, color } = data;
-  
-    //   // Convert the color to a numerical value
-    //   const numColor = translatecolorToNumber(color);
-    //   if (numColor !== -1) {
-    //     // Update the canvas with the new pixel color
-    //     if (ctx) {
-    //       ctx.fillStyle = color;
-    //       ctx.fillRect(x *  10, y *  10,  10,  10);
-    //     }
-    //   }
-    // };
-  
-    // // Add the message handler to the WebSocket instance
-    // socket.addEventListener('message', handleMessage);
-  
-    // // Store the WebSocket instance in state
-    // setWs(socket);
-  
-    // // Cleanup the WebSocket connection when the component unmounts
-    // return () => {
-    //   socket.removeEventListener('message', handleMessage);
-    //   socket.close();
-    // };
-  }, [ctx]); // Dependency array includes ctx to reinitialize if the canvas context changes
+    initializeWebSocket();
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, []); // Dependency array includes ctx to reinitialize if the canvas context changes
   
 
   const handleDisconnect = () => {
