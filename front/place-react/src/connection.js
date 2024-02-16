@@ -9,7 +9,8 @@ const Connection = () => {
   const navigate = useNavigate();
   useEffect(() => {
      //API REQUEST fetch le token et le comparer au cookie.token dans le if
-    if (cookies.token) {
+     console.log("Le token vaut : ", cookies.token)
+    if (cookies.token != null) {
       navigate('/canvas');
     }
   }, [cookies.token, navigate]);

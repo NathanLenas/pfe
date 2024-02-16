@@ -9,17 +9,16 @@ import api from './api_utils';
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
-  const [color, setColor] = useState("000000");
+  const [color, setColor] = useState("#000000");
   const [timer, setTimer] = useState(0);
   const [date, setDate] = useState(Date.now());
   const [user, setUser] = useState(null);
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [ws, setWs] = useState(null);
-
-  
-  const [cookies, removeCookie] = useCookies(['token']); // Get and set cookies
+  const [cookies, setCookie] = useCookies(['token']); // Get and set cookies
   const navigate = useNavigate();
+
   const fetchBoard = async () => {
     let board = await api.get_api("/api/place/board-bitmap");
     console.log("Board fetched:");
@@ -29,7 +28,7 @@ const Canvas = () => {
 
   
  
-  useEffect(() => {//Vérifie que l'utilisateur
+  useEffect(() => {
     const getTime = () => {
       // api.get_api("/api/place/last-user-timestamp/").then((time) => {
       //   console.log("Time fetched:");
@@ -80,7 +79,11 @@ const Canvas = () => {
             ctx.fillRect(x *  10, y *  10,  10,  10);
           }
         }
-      });
+      }, 
+      ((error) => {
+        console.log(error);
+        navigate('/');
+      }));
     }
   }, [ctx]);
   
@@ -151,9 +154,11 @@ const Canvas = () => {
 
   const handleDisconnect = () => {
     // Remove the user cookie
-    removeCookie('user', { path: '/' });
-    removeCookie('token', { path: '/' });
-    console.log(cookies.user);
+    //removeCookie('user', { path: '/' });
+    //removeCookie('token', { path: '/' });
+    setCookie('user', null, { path: '/'})
+    setCookie('token', null, { path: '/'})
+    console.log("User and token cookies changed to : ", cookies.user, " ", cookies.token);
     navigate("/");
   };
 

@@ -10,7 +10,7 @@ const Register = () => {
 
   useEffect(() => {
 
-    if (cookies.token) {
+    if (cookies.token != null) {
       navigate('/canvas');
     }
   }, [cookies.token, navigate]);
