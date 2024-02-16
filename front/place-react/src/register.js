@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 import DOMPurify from 'dompurify';
 import api from './api_utils';
+import './canvas.css';
 
 const Register = () => {
   const [cookies] = useCookies(['token']); // Initialize cookies
@@ -60,7 +61,7 @@ const Register = () => {
             onChange={handleChange}
           />
         </label>
-        <button type="submit">Register</button>
+        <button className="connect" type="submit">Register</button>
       </form>
       <button onClick={() => navigate('/')}>Already have an account</button>
     </div>

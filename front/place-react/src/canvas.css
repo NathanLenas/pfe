@@ -1,5 +1,12 @@
-.choiceColor{
-    margin-left: 5px;
+body {
+    background-color: #e8e7e7;
+    color: #333333;
+    font-family: Arial, sans-serif; 
+    display: flex;
+}
+
+p {
+    color: #555555;
 }
 
 .container {
@@ -16,4 +23,45 @@
     border: none;
 
 }
+
+.align{
+    display: flex;
+    flex-direction: column;
+}
+
+.connect{
+    display: flex;
+}
+
+.connect input,
+.connect button {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.connect button{
+    width: 120px;
+    height: 60px;
+    border:none;
+    background-color: #202020;
+    color:#e8e7e7;
+    cursor: pointer;
+}
+
+.connect:hover{
+    background-color: #545454;
+}
+
+.container {
+    margin-left: 5px;
+    max-width: 960px; /* limit width for readability */
+    margin: 0 auto; /* center the container */
+    padding: 20px; /* add some space inside */
+    background-color: #f9f9f9; /* light gray background */
+    border-radius: 8px; /* rounded corners */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* subtle shadow */
+}
+
 
