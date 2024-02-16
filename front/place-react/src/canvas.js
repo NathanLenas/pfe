@@ -99,11 +99,14 @@ const Canvas = () => {
         if (colorCode !== -1) {
 
           // Update the canvas with the new pixel color
-            console.log("Updating canvas");
-            const canvas = canvasRef.current;
-            const context = canvas.getContext('2d');
-            context.fillStyle = colorCode;
-            context.fillRect(x *  10, y *  10,  10,  10);
+          console.log("Updating canvas");
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            return;
+          }
+          const context = canvas.getContext('2d');
+          context.fillStyle = colorCode;
+          context.fillRect(x *  10, y *  10,  10,  10);
         }
       };
 
