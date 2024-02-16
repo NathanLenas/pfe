@@ -44,6 +44,10 @@ const colorNumberMap = {
   }
   
   export function translateNumberTocolor(num) {
-    return numberColorMap[num] !== undefined ? numberColorMap[num] : "Unknown";
+    if (numberColorMap.hasOwnProperty(num)) {
+      return numberColorMap[num];
+    } else {
+      return undefined;
+    }
   }
   

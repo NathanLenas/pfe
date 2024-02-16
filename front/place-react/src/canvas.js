@@ -4,7 +4,7 @@ import axios from "axios";
 import './canvas.css';
 import { useNavigate } from 'react-router-dom';
 import {translateNumberTocolor, translatecolorToNumber} from './translate';
-
+import api from './api_utils';
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
@@ -16,11 +16,16 @@ const Canvas = () => {
   const [seconds, setSeconds] = useState(0);
 
   
-  const API_URL = process.env.API_URL;
   const [cookies, removeCookie] = useCookies(['token']); // Get and set cookies
   const navigate = useNavigate();
+  const fetchBoard = async () => {
+    let board = await api.get_api("/api/place/board-bitmap");
+    console.log("Board fetched:");
+    console.log(board);
+    return board;
+  }
 
-
+  
  
   useEffect(() => {//Vérifie que l'utilisateur
     const getTime = () => {
@@ -37,6 +42,8 @@ const Canvas = () => {
       setUser(cookies.token);
       getTime();
     }
+
+    fetchBoard();
   }, [cookies.token, date, navigate]);
 
   useEffect(() => { //Obtains the info from the canvas
@@ -61,6 +68,7 @@ const Canvas = () => {
   const handleDisconnect = () => {
     // Remove the user cookie
     removeCookie('user', { path: '/' });
+    removeCookie('token', { path: '/' });
     console.log(cookies.user);
     navigate("/");
   };
@@ -78,24 +86,29 @@ const Canvas = () => {
       context.fillStyle = color;
       context.fillRect(x * 10, y * 10, 10, 10);
       setDate(Date.now());
-      setTimer(300000);
+      // setTimer(300000);
       updateDB(x, y, date);
     } else {
-      console.log("marchpas")
+      console.log("Delay not over yet!")
     }
   };
 
   const updateDB = (x, y, date) => {
-    const numColor = translateNumberTocolor(color);
-    //API REQUEST: mettre le point dans la db avec la variable user qui est globale
-    // try {
-    //   const response = axios(API_URL + "/api/place/draw");
-    //   console.log(response.data);
-    // } catch (error) {
-    //   console.error("Error fetching board:", error);
-    // }
-    //Envoi des coordonnée et de la date à l'API
-  }
+    let numColor = translatecolorToNumber(color);
+    if (numColor === -1) {
+      numColor =  0;
+    }
+    console.log("numColor: " + numColor);
+  
+    api.post_api("/api/place/draw", {
+      x: x,
+      y: y,
+      color: numColor
+    }).catch(error => {
+      console.error("Error updating pixel:", error);
+    });
+  };
+  
 
 
   useEffect(() => {
@@ -128,22 +141,6 @@ const Canvas = () => {
         onClick={handleCanvasClick}
       />
       <div className='choiceColor'>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#6d001a' }} onClick={() => changeColor("#6d001a")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#be0039' }} onClick={() => changeColor("#be0039")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ff4500' }} onClick={() => changeColor("#ff4500")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffa800' }} onClick={() => changeColor("#ffa800")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffd635' }} onClick={() => changeColor("#ffd635")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#fff8b8' }} onClick={() => changeColor("#fff8b8")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00a368' }} onClick={() => changeColor("#00a368")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00cc78' }} onClick={() => changeColor("#00cc78")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#7eed56' }} onClick={() => changeColor("#7eed56")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00756f' }} onClick={() => changeColor("#00756f")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#009eaa' }} onClick={() => changeColor("#009eaa")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00ccc0' }} onClick={() => changeColor("#00ccc0")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#2450a4' }} onClick={() => changeColor("#2450a4")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#3690ea' }} onClick={() => changeColor("#3690ea")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#51e9f4' }} onClick={() => changeColor("#51e9f4")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#493ac1' }} onClick={() => changeColor("#493ac1")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#6a5cff' }} onClick={() => changeColor("#6a5cff")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#94b3ff' }} onClick={() => changeColor("#94b3ff")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#811e9f' }} onClick={() => changeColor("#811e9f")} /></div>

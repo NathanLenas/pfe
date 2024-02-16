@@ -25,7 +25,7 @@ const Connection = () => {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const sanitizedData = {
@@ -33,12 +33,13 @@ const Connection = () => {
       password: DOMPurify.sanitize(formData.password)
     };
 
-    const token = api.login(sanitizedData.name, sanitizedData.password);
+    const token = await api.login(sanitizedData.name, sanitizedData.password);
+    if (token != null){
+      setCookie('token', token, { path: '/' });
+      navigate('/canvas');
+    }
+    
 
-    console.log("token= " + token);
-    setCookie('token', token, { path: '/' });
-    navigate('/canvas');
-    console.log('Form submitted:', formData);
   };
 
   return (
