@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCookies } from 'react-cookie';
 import DOMPurify from 'dompurify';
 import api from './api_utils';
-import './canvas.css';
+import './connection.css';
 
 const Connection = () => {
   const [cookies, setCookie] = useCookies(['token']); // Initialize cookies

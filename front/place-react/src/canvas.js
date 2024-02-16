@@ -228,23 +228,35 @@ const Canvas = () => {
         onClick={handleCanvasClick}
       />
 
-       <div className='container'>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(15) }} onClick={() => changeColor(translateNumberTocolor(15))} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(14)  }} onClick={() => changeColor(translateNumberTocolor(14) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(13)  }} onClick={() => changeColor(translateNumberTocolor(13) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(12)  }} onClick={() => changeColor(translateNumberTocolor(12) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(11)  }} onClick={() => changeColor(translateNumberTocolor(11) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(10)  }} onClick={() => changeColor(translateNumberTocolor(10) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(9)  }} onClick={() => changeColor(translateNumberTocolor(9) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(8)  }} onClick={() => changeColor(translateNumberTocolor(8) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(7)  }} onClick={() => changeColor(translateNumberTocolor(7) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(6)  }} onClick={() => changeColor(translateNumberTocolor(6) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(5)  }} onClick={() => changeColor(translateNumberTocolor(5) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(4)  }} onClick={() => changeColor(translateNumberTocolor(4) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(3)  }} onClick={() => changeColor(translateNumberTocolor(3) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(2)  }} onClick={() => changeColor(translateNumberTocolor(2) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(1)  }} onClick={() => changeColor(translateNumberTocolor(1) )} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(0)  }} onClick={() => changeColor(translateNumberTocolor(0) )} /></div>
+      <div className='container'>
+        <table className='colorTable'>
+          <tbody>
+            <tr>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(15) }} onClick={() => changeColor(translateNumberTocolor(15))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(14) }} onClick={() => changeColor(translateNumberTocolor(14))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(13) }} onClick={() => changeColor(translateNumberTocolor(13))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(12) }} onClick={() => changeColor(translateNumberTocolor(12))} /></td>
+            </tr>
+            <tr>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(11) }} onClick={() => changeColor(translateNumberTocolor(11))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(10) }} onClick={() => changeColor(translateNumberTocolor(10))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(9) }} onClick={() => changeColor(translateNumberTocolor(9))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(8) }} onClick={() => changeColor(translateNumberTocolor(8))} /></td>
+            </tr>
+            <tr>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(7) }} onClick={() => changeColor(translateNumberTocolor(7))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(6) }} onClick={() => changeColor(translateNumberTocolor(6))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(5) }} onClick={() => changeColor(translateNumberTocolor(5))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(4) }} onClick={() => changeColor(translateNumberTocolor(4))} /></td>
+            </tr>
+            <tr>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(3) }} onClick={() => changeColor(translateNumberTocolor(3))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(2) }} onClick={() => changeColor(translateNumberTocolor(2))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(1) }} onClick={() => changeColor(translateNumberTocolor(1))} /></td>
+              <td className='color'><button className='colorButton' style={{ backgroundColor: translateNumberTocolor(0) }} onClick={() => changeColor(translateNumberTocolor(0))} /></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div className='align'>
       <p>Next Click in :</p>
