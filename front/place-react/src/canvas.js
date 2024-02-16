@@ -14,6 +14,7 @@ const Canvas = () => {
   const [user, setUser] = useState(null);
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
+  const [ws, setWs] = useState(null);
 
   
   const [cookies, removeCookie] = useCookies(['token']); // Get and set cookies
@@ -29,7 +30,11 @@ const Canvas = () => {
  
   useEffect(() => {//Vérifie que l'utilisateur
     const getTime = () => {
-      
+      // api.get_api("/api/place/last-user-timestamp/").then((time) => {
+      //   console.log("Time fetched:");
+      //   console.log(time);
+      //   setTimer(time);
+      // });
       //REQUEST API POUR SET date à la valeur de dernier pixel de l'utilisateur
       setTimer(Date.now() - date)
     }
@@ -43,7 +48,6 @@ const Canvas = () => {
       getTime();
     }
 
-    fetchBoard();
   }, [cookies.token, date, navigate]);
 
   useEffect(() => { //Obtains the info from the canvas
@@ -52,18 +56,67 @@ const Canvas = () => {
     setCtx(context);
   }, []);
 
-  useEffect(() => { //Colorise the canvas
+  useEffect(() => {
     if (ctx) {
-      //API REQUEST fetch l'image en entier et la stocker dans baseImage
-      const baseImage = translateNumberTocolor(0)
-      ctx.clearRect(0, 0, 1000, 1000); // Clear canvas
-      ctx.save(); // Save the current state of the canvas context
-      ctx.fillStyle = baseImage;
-      ctx.fillRect(0, 0, 1000, 1000); // Draw canvas
-      ctx.restore(); // Restore the previous state of the canvas context
+      fetchBoard().then((boardData) => {
+        // Clear the canvas
+        ctx.clearRect(0,  0,  1000,  1000);
+  
+        // Set the fill style for the context
+        ctx.fillStyle = '';
+  
+        // Iterate through the board data and draw each pixel
+        for (let i =  0; i < boardData.length; i++) {
+          // Calculate the x and y position of the pixel
+          const x = i %  100;
+          const y = Math.floor(i /  100);
+  
+          // Convert the board data to a color
+          const colorValue = translateNumberTocolor(boardData[i]);
+          if (colorValue !== undefined && colorValue !== null) {
+            ctx.fillStyle = colorValue;
+            // Scale the x and y coordinates to match the canvas size
+            ctx.fillRect(x *  10, y *  10,  10,  10);
+          }
+        }
+      });
     }
   }, [ctx]);
-
+  
+  useEffect(() => {
+    // Create a WebSocket connection to the server
+    // const socket = api.get_websocket("api/place/board-bitmap/ws");
+  
+    // // Define a function to handle incoming messages
+    // const handleMessage = (event) => {
+    //   const data = JSON.parse(event.data);
+    //   // Assuming the data contains x, y, and color properties
+    //   const { x, y, color } = data;
+  
+    //   // Convert the color to a numerical value
+    //   const numColor = translatecolorToNumber(color);
+    //   if (numColor !== -1) {
+    //     // Update the canvas with the new pixel color
+    //     if (ctx) {
+    //       ctx.fillStyle = color;
+    //       ctx.fillRect(x *  10, y *  10,  10,  10);
+    //     }
+    //   }
+    // };
+  
+    // // Add the message handler to the WebSocket instance
+    // socket.addEventListener('message', handleMessage);
+  
+    // // Store the WebSocket instance in state
+    // setWs(socket);
+  
+    // // Cleanup the WebSocket connection when the component unmounts
+    // return () => {
+    //   socket.removeEventListener('message', handleMessage);
+    //   socket.close();
+    // };
+  }, [ctx]); // Dependency array includes ctx to reinitialize if the canvas context changes
+  
 
   const handleDisconnect = () => {
     // Remove the user cookie

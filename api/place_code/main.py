@@ -215,7 +215,7 @@ app = FastAPI()
 async def verify_token(request: Request, call_next):
     # Allow access to the documentation without a token
     path = request.url.path
-    if path == "/redoc" or path == "/docs" or path == "/openapi.json" or path == "/" or path == "/auth/token":
+    if path == "/redoc" or path == "/docs" or path == "/openapi.json" or path == "/" or path == "/auth/token" or path == "/api/place/ws":
         response = await call_next(request)
         return response
     

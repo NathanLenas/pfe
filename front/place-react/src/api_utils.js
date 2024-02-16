@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-
 const API_URL = process.env.REACT_APP_API_URL;
 
 function getCookie(name) {
@@ -10,7 +9,6 @@ function getCookie(name) {
         return parts.pop().split(';').shift();
     }
 }
-
 
 const get_api = async (url) => {
     try {
@@ -44,7 +42,6 @@ const post_api = async (url, data) => {
         console.error("Error fetching board:", error);
     }
 }
-
 
 const register = async (name, password) => {
     try {
@@ -91,11 +88,22 @@ const login = async (name, password) => {
     }
 }
 
+const get_websocket = async () => {
+    try {
+        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/ws`);
+        return ws;
+    } catch (error) {
+        console.error("Error creating websocket:", error);
+        return null;
+    }
+}
+
 const api = {
     get_api,
     post_api,
     register,
-    login
-  };
-  
+    login,
+    get_websocket
+};
+
 export default api;
