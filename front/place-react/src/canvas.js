@@ -97,11 +97,13 @@ const Canvas = () => {
         console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
         const colorCode = translateNumberTocolor(color);
         if (colorCode !== -1) {
+
           // Update the canvas with the new pixel color
-          if (ctx) {
-            ctx.fillStyle = colorCode;
-            ctx.fillRect(x *  10, y *  10,  10,  10);
-          }
+            console.log("Updating canvas");
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
+            context.fillStyle = colorCode;
+            context.fillRect(x *  10, y *  10,  10,  10);
         }
       };
 
@@ -111,6 +113,8 @@ const Canvas = () => {
 
       // Set up event listeners
       socket.onopen = () => {
+        // Store the WebSocket instance in state
+        setWs(socket);
         console.log("WebSocket connection opened");
       };
       socket.onmessage = handleMessage;
@@ -122,29 +126,23 @@ const Canvas = () => {
       };
 
       socket.then((ws) => {
-        // Add a listener for the connection event
-        ws.onopen = () => {
-
-        };
-
         // Add a listener for the message event
         ws.onmessage = handleMessage;
 
       });
   
    
-    // Store the WebSocket instance in state
-    setWs(socket);
+    
   };
 
   useEffect(() => {
     initializeWebSocket();
     return () => {
-      if (ws) {
-        ws.close();
-      }
+      // if (ws) {
+      //   ws.close();
+      // }
     };
-  }, []); // Dependency array includes ctx to reinitialize if the canvas context changes
+  }, []);
   
 
   const handleDisconnect = () => {
