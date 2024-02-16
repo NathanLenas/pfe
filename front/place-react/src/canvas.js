@@ -1,16 +1,57 @@
 import React, { useRef, useEffect, useState } from 'react';
-import './canvas.css'
+import { useCookies } from 'react-cookie';
 import axios from "axios";
+import './canvas.css';
+import { useNavigate } from 'react-router-dom';
+import {translateNumberTocolor, translatecolorToNumber} from './translate';
+import api from './api_utils';
 
 const Canvas = () => {
   const canvasRef = useRef(null);
   const [ctx, setCtx] = useState(null);
   const [color, setColor] = useState("000000");
-  const [timer, setTimer] = useState('0');
-  const [date, setDate] = useState(null);
-  const API_URL = process.env.API_URL;
+  const [timer, setTimer] = useState(0);
+  const [date, setDate] = useState(Date.now());
+  const [user, setUser] = useState(null);
+  const [minutes, setMinutes] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+  const [ws, setWs] = useState(null);
 
-  useEffect(() => {
+  
+  const [cookies, removeCookie] = useCookies(['token']); // Get and set cookies
+  const navigate = useNavigate();
+  const fetchBoard = async () => {
+    let board = await api.get_api("/api/place/board-bitmap");
+    console.log("Board fetched:");
+    console.log(board);
+    return board;
+  }
+
+  
+ 
+  useEffect(() => {//Vérifie que l'utilisateur
+    const getTime = () => {
+      // api.get_api("/api/place/last-user-timestamp/").then((time) => {
+      //   console.log("Time fetched:");
+      //   console.log(time);
+      //   setTimer(time);
+      // });
+      //REQUEST API POUR SET date à la valeur de dernier pixel de l'utilisateur
+      setTimer(Date.now() - date)
+    }
+
+     //API REQUEST fetch le token et le comparer au cookie.token dans le if
+    if (!cookies.token) {
+      navigate('/');
+    } else {
+      //API REQUEST fetch le nom d'utilisateur grâce au token (le cookie)
+      setUser(cookies.token);
+      getTime();
+    }
+
+  }, [cookies.token, date, navigate]);
+
+  useEffect(() => { //Obtains the info from the canvas
     const canvas = canvasRef.current;
     const context = canvas.getContext('2d');
     setCtx(context);
@@ -18,15 +59,103 @@ const Canvas = () => {
 
   useEffect(() => {
     if (ctx) {
-      //TODO import canvas from BDD
-      ctx.clearRect(0, 0, 1000, 1000); // Clear canvas
-      ctx.save(); // Save the current state of the canvas context
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, 1000, 1000); // Draw canvas
-      ctx.restore(); // Restore the previous state of the canvas context
+      fetchBoard().then((boardData) => {
+        // Clear the canvas
+        ctx.clearRect(0,  0,  1000,  1000);
+  
+        // Set the fill style for the context
+        ctx.fillStyle = '';
+  
+        // Iterate through the board data and draw each pixel
+        for (let i =  0; i < boardData.length; i++) {
+          // Calculate the x and y position of the pixel
+          const x = i %  100;
+          const y = Math.floor(i /  100);
+  
+          // Convert the board data to a color
+          const colorValue = translateNumberTocolor(boardData[i]);
+          if (colorValue !== undefined && colorValue !== null) {
+            ctx.fillStyle = colorValue;
+            // Scale the x and y coordinates to match the canvas size
+            ctx.fillRect(x *  10, y *  10,  10,  10);
+          }
+        }
+      });
     }
   }, [ctx]);
+  
+   // Function to initialize the WebSocket connection
+   const initializeWebSocket = () => {
 
+      // Define a function to handle incoming messages
+      const handleMessage = (event) => {
+        console.log("Message received:");
+        console.log(event.data);
+        const data = JSON.parse(event.data);
+        // Assuming the data contains x, y, and color properties
+        const { x, y, color } = data;
+        
+        console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
+        const colorCode = translateNumberTocolor(color);
+        if (colorCode !== -1) {
+
+          // Update the canvas with the new pixel color
+          console.log("Updating canvas");
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            return;
+          }
+          const context = canvas.getContext('2d');
+          context.fillStyle = colorCode;
+          context.fillRect(x *  10, y *  10,  10,  10);
+        }
+      };
+
+     // Create a WebSocket connection to the server
+     const socket = api.get_websocket("api/place/board-bitmap/ws");
+
+
+      // Set up event listeners
+      socket.onopen = () => {
+        // Store the WebSocket instance in state
+        setWs(socket);
+        console.log("WebSocket connection opened");
+      };
+      socket.onmessage = handleMessage;
+      socket.onclose = (event) => {
+        console.log("WebSocket connection closed");
+      };
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+      };
+
+      socket.then((ws) => {
+        // Add a listener for the message event
+        ws.onmessage = handleMessage;
+
+      });
+  
+   
+    
+  };
+
+  useEffect(() => {
+    initializeWebSocket();
+    return () => {
+      // if (ws) {
+      //   ws.close();
+      // }
+    };
+  }, []);
+  
+
+  const handleDisconnect = () => {
+    // Remove the user cookie
+    removeCookie('user', { path: '/' });
+    removeCookie('token', { path: '/' });
+    console.log(cookies.user);
+    navigate("/");
+  };
 
   const handleCanvasClick = (event) => {
     if (timer < 999) {
@@ -37,37 +166,38 @@ const Canvas = () => {
       const x = Math.floor(((event.clientX - rect.left) * scaleX) / 10);
       const y = Math.floor(((event.clientY - rect.top) * scaleY) / 10);
       console.log(`Clicked at (${x}, ${y})`);
-
       const context = canvas.getContext('2d');
       context.fillStyle = color;
       context.fillRect(x * 10, y * 10, 10, 10);
       setDate(Date.now());
-      setTimer(300000);
+      // setTimer(300000);
       updateDB(x, y, date);
+    } else {
+      console.log("Delay not over yet!")
     }
   };
 
   const updateDB = (x, y, date) => {
-    //EN THEORIE CA MARCHE, JE SAIS PAS
-    try {
-      const response = axios(API_URL + "/api/place/draw");
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error fetching board:", error);
+    let numColor = translatecolorToNumber(color);
+    if (numColor === -1) {
+      numColor =  0;
     }
-    //Envoi des coordonnée et de la date à l'API
-  }
+    console.log("numColor: " + numColor);
+  
+    api.post_api("/api/place/draw", {
+      x: x,
+      y: y,
+      color: numColor
+    }).catch(error => {
+      console.error("Error updating pixel:", error);
+    });
+  };
+  
 
 
-  const [minutes, setMinutes] = useState(0);
-  const [seconds, setSeconds] = useState(0);
-  const getTime = () => {
-    setTimer(Date.now() - date)
-
-    console.log(minutes)
-  }
   useEffect(() => {
     const intervalId = setInterval(() => {
+      console.log(timer)
       if (timer > 999) {
         setTimer(timer - 1000);
         setMinutes(Math.floor((timer / 1000 / 60) % 60));
@@ -93,22 +223,6 @@ const Canvas = () => {
         onClick={handleCanvasClick}
       />
       <div className='choiceColor'>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#6d001a' }} onClick={() => changeColor("#6d001a")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#be0039' }} onClick={() => changeColor("#be0039")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ff4500' }} onClick={() => changeColor("#ff4500")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffa800' }} onClick={() => changeColor("#ffa800")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#ffd635' }} onClick={() => changeColor("#ffd635")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#fff8b8' }} onClick={() => changeColor("#fff8b8")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00a368' }} onClick={() => changeColor("#00a368")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00cc78' }} onClick={() => changeColor("#00cc78")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#7eed56' }} onClick={() => changeColor("#7eed56")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00756f' }} onClick={() => changeColor("#00756f")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#009eaa' }} onClick={() => changeColor("#009eaa")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#00ccc0' }} onClick={() => changeColor("#00ccc0")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#2450a4' }} onClick={() => changeColor("#2450a4")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#3690ea' }} onClick={() => changeColor("#3690ea")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#51e9f4' }} onClick={() => changeColor("#51e9f4")} /></div>
-        <div className='color'><button className='colorButton' style={{ backgroundColor: '#493ac1' }} onClick={() => changeColor("#493ac1")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#6a5cff' }} onClick={() => changeColor("#6a5cff")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#94b3ff' }} onClick={() => changeColor("#94b3ff")} /></div>
         <div className='color'><button className='colorButton' style={{ backgroundColor: '#811e9f' }} onClick={() => changeColor("#811e9f")} /></div>
@@ -132,6 +246,9 @@ const Canvas = () => {
 
       <p>{seconds}</p>
       <span>Seconds</span>
+
+      <button onClick={handleDisconnect}>Disconnect</button>
+
     </div>
 
   );

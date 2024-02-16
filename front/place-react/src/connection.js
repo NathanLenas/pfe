@@ -1,31 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CookiesProvider, useCookies } from "react-cookie";
+import { useCookies } from 'react-cookie';
+import DOMPurify from 'dompurify';
+import api from './api_utils';
 
 const Connection = () => {
+  const [cookies, setCookie] = useCookies(['token']); // Initialize cookies
   const navigate = useNavigate();
-  const [cookies, setCookie] = useCookies(["Token"]);
+  useEffect(() => {
+     //API REQUEST fetch le token et le comparer au cookie.token dans le if
+    if (cookies.token) {
+      navigate('/canvas');
+    }
+  }, [cookies.token, navigate]);
+
   const [formData, setFormData] = useState({
     name: '',
     password: ''
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e) => { //updates user and password according to what the user typed
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    //TODO COMMUNICATION AVEC L'API
-    navigate('/canvas');
-    console.log('Form submitted:', formData);
+
+    const sanitizedData = {
+      name: DOMPurify.sanitize(formData.name),
+      password: DOMPurify.sanitize(formData.password)
+    };
+
+    const token = await api.login(sanitizedData.name, sanitizedData.password);
+    if (token != null){
+      setCookie('token', token, { path: '/' });
+      navigate('/canvas');
+    }
+    
+
   };
 
   return (
     <div>
       <form onSubmit={handleSubmit}>
-      <p>Please enter your login and password</p>
+        <p>Please enter your login and password</p>
         <label>
           Name:
           <input

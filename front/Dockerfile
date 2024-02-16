@@ -4,16 +4,13 @@ FROM node:latest
 # set working directory
 WORKDIR /app
 
-# add `/app/node_modules/.bin` to $PATH
+# add `/app/node_modules/.bin` to $PATH to use npm binaries
 ENV PATH /app/node_modules/.bin:$PATH
 
 # install app dependencies
-COPY place-react/package.json ./
-COPY place-react/package-lock.json ./
+COPY ./place-react/package.json ./package.json
+COPY ./place-react/package-lock.json ./package-lock.json
 RUN npm install
-
-# add app
-COPY ./place-react/ ./
 
 # start app
 CMD ["npm", "start"]
