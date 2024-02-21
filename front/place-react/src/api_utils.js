@@ -12,8 +12,8 @@ function getCookie(name) {
 
 const get_api = async (url) => {
     try {
-        console.log("get : " + `${API_URL}${url}`);
-        console.log("getCookie('token') : " + getCookie('token'));
+        console.log("get:" + `${API_URL}${url}`);
+        console.log("getCookie('token'):" + getCookie('token'));
         const response = await axios.get(`${API_URL}${url}`, {
             headers: {
                 Authorization: `${getCookie('token')}`
@@ -23,7 +23,7 @@ const get_api = async (url) => {
         console.log("get:" + `${API_URL}${url}`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching "+ `${API_URL}${url}` +" : ", error);
+        console.error("Error fetching board:", error);
     }
 }
 
@@ -88,13 +88,13 @@ const login = async (name, password) => {
     }
 }
 
-const get_websocket = async (token) => {
+const get_websocket = async () => {
     try {
-        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws?token=${token}`);
-        console.log("ws:" + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws?token=${token}`);
+        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
+        console.log("ws:" + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
         return ws;
     } catch (error) {
-        console.error("Error creating websocket: ", error);
+        console.error("Error creating websocket:", error);
         return null;
     }
 }

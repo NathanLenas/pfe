@@ -15,11 +15,7 @@ from cassandra.cluster import Cluster, Session
 app = FastAPI()
 
 origins = [
-    "http://localhost",
-    "http://localhost:8000",
-    "http://localhost:80",
-    "http://localhost:3000",
-    "http://nginx",
+    "*"
 ]
 
 app.add_middleware(
@@ -121,10 +117,7 @@ def get_password_hash(password):
 def verify_password(plain_password, hashed_password):
     password_byte_enc = plain_password.encode('utf-8')
     hashed_password_byte_enc = hashed_password.encode('utf-8')
-    return bcrypt.checkpw(
-        password = password_byte_enc, 
-        hashed_password = hashed_password_byte_enc
-    )
+    return bcrypt.checkpw(password = password_byte_enc , hashed_password = hashed_password_byte_enc)
 
 
 def get_user(db: Session, username: str):
