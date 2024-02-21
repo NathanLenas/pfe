@@ -36,7 +36,7 @@ cassandra_host = os.getenv("CASSANDRA_HOST", "cassandra")  # Get the CASSANDRA_H
 cassandra_port = int(os.getenv("CASSANDRA_PORT", 9042))
 
 # Define JWT settings
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://auth_api:8000/auth/token")
 
 credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,11 +44,19 @@ credentials_exception = HTTPException(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://localhost:80",
+    "http://localhost:3000",
+    "http://nginx",
+]
+
 # Helper functions
 def setup_middleware(app: FastAPI):
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -307,6 +315,21 @@ async def get_user_last_timestamp(request: Request):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     active_connections.add(websocket)
+    
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        token_data = decode_jwt(token)
+    except Exception as e:
+        print("Token error : ", e)
+        await websocket.close(code=1008)
+        return
+
+    # Attach the token data to the websocket
+    websocket.token_data = token_data
     try:
         while True:
             data = await websocket.receive_text()

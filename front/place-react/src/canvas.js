@@ -20,10 +20,15 @@ const Canvas = () => {
   const navigate = useNavigate();
 
   const fetchBoard = async () => {
-    let board = await api.get_api("/api/place/board-bitmap");
-    console.log("Board fetched:");
-    console.log(board);
-    return board;
+    try {
+      let board = await api.get_api("/api/place/board-bitmap");
+      console.log("Board fetched:");
+      console.log(board);
+      return board;
+    } catch (error) {
+      console.error("Error fetching board:", error);
+      // Handle the error appropriately here
+    }
   }
 
   
@@ -43,7 +48,7 @@ const Canvas = () => {
     if (!cookies.token) {
       navigate('/');
     } else {
-      //API REQUEST fetch le nom d'utilisateur grâce au token (le cookie)
+      //API REQUEST fetch le nom d'utilisateur
       setUser(cookies.token);
       getTime();
     }
@@ -81,7 +86,14 @@ const Canvas = () => {
         }
       }, 
       ((error) => {
+        console.log("Error fetching board data:");
         console.log(error);
+        // Clear the canvas
+        ctx.clearRect(0,  0,  1000,  1000);
+        // Set the fill style to white
+        ctx.fillStyle = '#FFFFFF';
+        // Fill the canvas
+        ctx.fillRect(0, 0, 1000, 1000);
         navigate('/');
       }));
     }
@@ -115,7 +127,7 @@ const Canvas = () => {
       };
 
      // Create a WebSocket connection to the server
-     const socket = api.get_websocket("api/place/board-bitmap/ws");
+     const socket = api.get_websocket(cookies.token);
 
 
       // Set up event listeners
