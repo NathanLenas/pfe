@@ -3,7 +3,7 @@ import { useCookies } from 'react-cookie';
 import axios from "axios";
 import './canvas.css';
 import { useNavigate } from 'react-router-dom';
-import {translateNumberTocolor, translatecolorToNumber} from './translate';
+import { translateNumberTocolor, translatecolorToNumber } from './translate';
 import api from './api_utils';
 
 const Canvas = () => {
@@ -31,8 +31,7 @@ const Canvas = () => {
     }
   }
 
-  
- 
+
   useEffect(() => {
     const getTime = () => {
       // api.get_api("/api/place/last-user-timestamp/").then((time) => {
@@ -44,7 +43,7 @@ const Canvas = () => {
       setTimer(Date.now() - date)
     }
 
-     //API REQUEST fetch le token et le comparer au cookie.token dans le if
+    //API REQUEST fetch le token et le comparer au cookie.token dans le if
     if (!cookies.token) {
       navigate('/');
     } else {
@@ -65,111 +64,118 @@ const Canvas = () => {
     if (ctx) {
       fetchBoard().then((boardData) => {
         // Clear the canvas
-        ctx.clearRect(0,  0,  1000,  1000);
-  
+        ctx.clearRect(0, 0, 1000, 1000);
+
         // Set the fill style for the context
         ctx.fillStyle = '';
-  
+
+        if (boardData === undefined || boardData === null) {
+          console.log("Board data is undefined or null");
+          //throw new Error("Board data is undefined or null");
+          handleDisconnect();
+          return;
+        }
+
         // Iterate through the board data and draw each pixel
-        for (let i =  0; i < boardData.length; i++) {
+        for (let i = 0; i < boardData.length; i++) {
           // Calculate the x and y position of the pixel
-          const x = i %  100;
-          const y = Math.floor(i /  100);
-  
+          const x = i % 100;
+          const y = Math.floor(i / 100);
+
           // Convert the board data to a color
           const colorValue = translateNumberTocolor(boardData[i]);
           if (colorValue !== undefined && colorValue !== null) {
             ctx.fillStyle = colorValue;
             // Scale the x and y coordinates to match the canvas size
-            ctx.fillRect(x *  10, y *  10,  10,  10);
+            ctx.fillRect(x * 10, y * 10, 10, 10);
           }
         }
-      }, 
-      ((error) => {
-        console.log("Error fetching board data:");
-        console.log(error);
-        // Clear the canvas
-        ctx.clearRect(0,  0,  1000,  1000);
-        // Set the fill style to white
-        ctx.fillStyle = '#FFFFFF';
-        // Fill the canvas
-        ctx.fillRect(0, 0, 1000, 1000);
-        navigate('/');
-      }));
+      },
+        ((error) => {
+          console.log("Error fetching board data:");
+          console.log(error);
+          // Clear the canvas
+          ctx.clearRect(0, 0, 1000, 1000);
+          // Set the fill style to white
+          ctx.fillStyle = '#FFFFFF';
+          // Fill the canvas
+          ctx.fillRect(0, 0, 1000, 1000);
+          handleDisconnect();
+        }));
     }
   }, [ctx]);
-  
-   // Function to initialize the WebSocket connection
-   const initializeWebSocket = () => {
 
-      // Define a function to handle incoming messages
-      const handleMessage = (event) => {
-        console.log("Message received:");
-        console.log(event.data);
-        const data = JSON.parse(event.data);
-        // Assuming the data contains x, y, and color properties
-        const { x, y, color } = data;
-        
-        console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
-        const colorCode = translateNumberTocolor(color);
-        if (colorCode !== -1) {
+  // Define a function to handle incoming messages
+  const handleMessage = (event) => {
+    console.log("Message received:");
+    console.log(event.data);
+    const data = JSON.parse(event.data);
+    // Assuming the data contains x, y, and color properties
+    const { x, y, color } = data;
 
-          // Update the canvas with the new pixel color
-          console.log("Updating canvas");
-          const canvas = canvasRef.current;
-          if (!canvas) {
-            return;
-          }
-          const context = canvas.getContext('2d');
-          context.fillStyle = colorCode;
-          context.fillRect(x *  10, y *  10,  10,  10);
-        }
-      };
+    console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
+    const colorCode = translateNumberTocolor(color);
+    if (colorCode !== -1) {
 
-     // Create a WebSocket connection to the server
-     const socket = api.get_websocket(cookies.token);
-
-
-      // Set up event listeners
-      socket.onopen = () => {
-        // Store the WebSocket instance in state
-        setWs(socket);
-        console.log("WebSocket connection opened");
-      };
-      socket.onmessage = handleMessage;
-      socket.onclose = (event) => {
-        console.log("WebSocket connection closed");
-      };
-      socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-      };
-
-      socket.then((ws) => {
-        // Add a listener for the message event
-        ws.onmessage = handleMessage;
-
-      });
-  
-   
-    
+      // Update the canvas with the new pixel color
+      console.log("Updating canvas");
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const context = canvas.getContext('2d');
+      context.fillStyle = colorCode;
+      context.fillRect(x * 10, y * 10, 10, 10);
+    }
   };
 
   useEffect(() => {
+
+    // Function to initialize the WebSocket connection
+    const initializeWebSocket = () => {
+
+      // Create a WebSocket connection to the server
+      console.log("Creating WebSocket connection");
+      const socket = api.get_websocket(cookies.token);
+
+      socket.then((ws) => {
+        // Add a listener for the open event
+        ws.onopen = (event) => {
+          // Store the WebSocket instance in state
+          setWs(ws);
+          console.log("WebSocket connection opened");
+        };
+        // Add a listener for the message event
+        ws.onmessage = handleMessage;
+        // Add a listener for the close event
+        ws.onclose = (event) => {
+          console.log("WebSocket connection closed");
+        };
+        // Add a listener for the error event
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+
+      });
+
+    };
+
+    console.log("Calling initializeWebSocket");
     initializeWebSocket();
     return () => {
-      // if (ws) {
-      //   ws.close();
-      // }
+      if (ws) {
+        ws.close();
+      }
     };
   }, []);
-  
+
 
   const handleDisconnect = () => {
     // Remove the user cookie
     //removeCookie('user', { path: '/' });
     //removeCookie('token', { path: '/' });
-    setCookie('user', null, { path: '/'})
-    setCookie('token', null, { path: '/'})
+    setCookie('user', null, { path: '/' })
+    setCookie('token', null, { path: '/' })
     console.log("User and token cookies changed to : ", cookies.user, " ", cookies.token);
     navigate("/");
   };
@@ -197,10 +203,10 @@ const Canvas = () => {
   const updateDB = (x, y, date) => {
     let numColor = translatecolorToNumber(color);
     if (numColor === -1) {
-      numColor =  0;
+      numColor = 0;
     }
     console.log("numColor: " + numColor);
-  
+
     api.post_api("/api/place/draw", {
       x: x,
       y: y,
@@ -209,12 +215,12 @@ const Canvas = () => {
       console.error("Error updating pixel:", error);
     });
   };
-  
+
 
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log(timer)
+      //console.log(timer)
       if (timer > 999) {
         setTimer(timer - 1000);
         setMinutes(Math.floor((timer / 1000 / 60) % 60));
@@ -271,14 +277,14 @@ const Canvas = () => {
         </table>
       </div>
       <div className='align'>
-      <p>Next Click in :</p>
-      <p>{minutes}</p>
-      <span>Minutes</span>
+        <p>Next Click in :</p>
+        <p>{minutes}</p>
+        <span>Minutes</span>
 
-      <p>{seconds}</p>
-      <span>Seconds</span>
+        <p>{seconds}</p>
+        <span>Seconds</span>
 
-      <button className='connect' onClick={handleDisconnect}>Disconnect</button>
+        <button className='connect' onClick={handleDisconnect}>Disconnect</button>
       </div>
     </div>
 

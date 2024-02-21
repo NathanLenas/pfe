@@ -39,7 +39,7 @@ const post_api = async (url, data) => {
         console.log("post:" + `${API_URL}${url}`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching board:", error);
+        console.error("Error fetching :", error);
     }
 }
 
@@ -90,8 +90,9 @@ const login = async (name, password) => {
 
 const get_websocket = async (token) => {
     try {
-        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws?token=${token}`);
-        console.log("ws:" + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws?token=${token}`);
+        const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`, [], {
+            headers: {'Authorization': token }});
+        console.log("get " + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
         return ws;
     } catch (error) {
         console.error("Error creating websocket: ", error);
