@@ -27,32 +27,31 @@ const Canvas = () => {
       return board;
     } catch (error) {
       console.error("Error fetching board:", error);
-      // Handle the error appropriately here
+      return null;
     }
   }
 
 
-  useEffect(() => {
+  useEffect(() => { // Define the timer function and set the user
     const getTime = () => {
       // api.get_api("/api/place/last-user-timestamp/").then((time) => {
       //   console.log("Time fetched:");
       //   console.log(time);
       //   setTimer(time);
       // });
-      //REQUEST API POUR SET date à la valeur de dernier pixel de l'utilisateur
       setTimer(Date.now() - date)
     }
 
     //API REQUEST fetch le token et le comparer au cookie.token dans le if
-    if (!cookies.token) {
-      navigate('/');
+    if (cookies.token == null || cookies.token === undefined || cookies.token === "") {
+      handleDisconnect();
     } else {
       //API REQUEST fetch le nom d'utilisateur
       setUser(cookies.token);
       getTime();
     }
 
-  }, [cookies.token, date, navigate]);
+  }, [cookies.token, date]);
 
   useEffect(() => { //Obtains the info from the canvas
     const canvas = canvasRef.current;
@@ -60,7 +59,7 @@ const Canvas = () => {
     setCtx(context);
   }, []);
 
-  useEffect(() => {
+  useEffect(() => { // Fetch the board data and draw the pixels
     if (ctx) {
       fetchBoard().then((boardData) => {
         // Clear the canvas
@@ -128,8 +127,7 @@ const Canvas = () => {
       context.fillRect(x * 10, y * 10, 10, 10);
     }
   };
-
-  useEffect(() => {
+  useEffect(() => { // Initialize the WebSocket connection
 
     // Function to initialize the WebSocket connection
     const initializeWebSocket = () => {
@@ -164,6 +162,7 @@ const Canvas = () => {
     initializeWebSocket();
     return () => {
       if (ws) {
+        console.log("WebSocket already opened : closing connection");
         ws.close();
       }
     };
@@ -172,8 +171,6 @@ const Canvas = () => {
 
   const handleDisconnect = () => {
     // Remove the user cookie
-    //removeCookie('user', { path: '/' });
-    //removeCookie('token', { path: '/' });
     setCookie('user', null, { path: '/' })
     setCookie('token', null, { path: '/' })
     console.log("User and token cookies changed to : ", cookies.user, " ", cookies.token);

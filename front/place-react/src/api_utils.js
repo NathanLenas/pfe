@@ -19,8 +19,6 @@ const get_api = async (url) => {
                 Authorization: `${getCookie('token')}`
             }
         });
-
-        console.log("get:" + `${API_URL}${url}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching "+ `${API_URL}${url}` +" : ", error);
