@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from redis import Redis
 from pydantic import BaseModel
+from starlette.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
 from cassandra.cluster import Cluster, Session
@@ -11,6 +12,8 @@ import time
 import os
 from datetime import datetime
 from typing import Optional, Set
+import logging
+from fastapi_utils.timing import add_timing_middleware, record_timing
 
 
 ## Constants 
@@ -187,8 +190,17 @@ def decode_jwt(token: str = Depends(oauth2_scheme)):
     
 # --------------------------------------------------------------------------------------------
 
+# Setup logging 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # App instance creation
 app = FastAPI()
+
+add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+
+static_files_app = StaticFiles(directory=".")
+app.mount(path="/static", app=static_files_app, name="static")
 
 # Database connections
 redis_session = connect_to_redis(10)
@@ -219,6 +231,10 @@ class DrawCommand(BaseModel):
 # Routes
 
 app = FastAPI()
+add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+
+static_files_app = StaticFiles(directory=".")
+app.mount(path="/static", app=static_files_app, name="static")
 
 @app.middleware("http")
 async def verify_token(request: Request, call_next):
