@@ -191,7 +191,7 @@ def decode_jwt(token: str = Depends(oauth2_scheme)):
 # --------------------------------------------------------------------------------------------
 
 # Setup logging 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, filename="/code/app/log/place.log")
 logger = logging.getLogger(__name__)
 
 # App instance creation
@@ -307,6 +307,9 @@ async def draw_on_board(command: DrawCommand, request: Request):
     set_4bit_value(redis_session, key, index, command.color)
     
     # Notify all WebSocket clients about the draw
+    
+    start_time = time.time()
+
     for connection in list(active_connections):
         try:
             await connection.send_json({
@@ -319,6 +322,10 @@ async def draw_on_board(command: DrawCommand, request: Request):
             })
         except WebSocketDisconnect:
             active_connections.remove(connection)
+
+    end_time = time.time()
+    execution_time = (end_time - start_time) * 1000
+    logger.info(f"INFO:app.main:TIMING: Websocket send: {execution_time}ms by {request.state.token_data.username}")
         
     return {"message": "Pixel updated successfully"}
 
