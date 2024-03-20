@@ -18,6 +18,8 @@ from fastapi_utils.timing import add_timing_middleware, record_timing
 
 ## Constants 
 
+ENABLE_TIMING = False
+
 # Board
 MAX_COLORS =  16
 BOARD_SIZE =  100
@@ -64,6 +66,9 @@ def setup_middleware(app: FastAPI):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    if ENABLE_TIMING:
+        add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
 
 class TokenData(BaseModel):
@@ -197,8 +202,6 @@ logger = logging.getLogger(__name__)
 # App instance creation
 app = FastAPI()
 
-add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
-
 static_files_app = StaticFiles(directory=".")
 app.mount(path="/static", app=static_files_app, name="static")
 
@@ -231,7 +234,8 @@ class DrawCommand(BaseModel):
 # Routes
 
 app = FastAPI()
-add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+if ENABLE_TIMING:
+    add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
 static_files_app = StaticFiles(directory=".")
 app.mount(path="/static", app=static_files_app, name="static")
@@ -307,7 +311,6 @@ async def draw_on_board(command: DrawCommand, request: Request):
     set_4bit_value(redis_session, key, index, command.color)
     
     # Notify all WebSocket clients about the draw
-    
     start_time = time.time()
 
     for connection in list(active_connections):
@@ -324,8 +327,9 @@ async def draw_on_board(command: DrawCommand, request: Request):
             active_connections.remove(connection)
 
     end_time = time.time()
-    execution_time = (end_time - start_time) * 1000
-    logger.info(f"INFO:app.main:TIMING: Websocket send: {execution_time}ms by {request.state.token_data.username}")
+    if ENABLE_TIMING:
+        execution_time = (end_time - start_time) * 1000
+        logger.info(f"INFO:app.main:TIMING: Websocket send: {execution_time}ms by {request.state.token_data.username}")
         
     return {"message": "Pixel updated successfully"}
 
