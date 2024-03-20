@@ -90,7 +90,7 @@ const get_websocket = async () => {
     try {
 
         const ws = new WebSocket(`${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`, [], {
-            headers: {'Authorization': token }});
+            headers: {'Authorization': getCookie('token') }});
         console.log("get " + `${API_URL.replace("http", "ws")}/api/place/board-bitmap/ws`);
 
         return ws;
