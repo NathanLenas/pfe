@@ -4,6 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from redis import Redis
 from pydantic import BaseModel
+from starlette.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
 from cassandra.cluster import Cluster, Session
@@ -11,9 +12,13 @@ import time
 import os
 from datetime import datetime
 from typing import Optional, Set
+import logging
+from fastapi_utils.timing import add_timing_middleware, record_timing
 
 
 ## Constants 
+
+ENABLE_TIMING = False
 
 # Board
 MAX_COLORS =  16
@@ -53,6 +58,9 @@ def setup_middleware(app: FastAPI):
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    if ENABLE_TIMING:
+        add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
 
 
 class TokenData(BaseModel):
@@ -179,8 +187,15 @@ def decode_jwt(token: str = Depends(oauth2_scheme)):
     
 # --------------------------------------------------------------------------------------------
 
+# Setup logging 
+logging.basicConfig(level=logging.INFO, filename="/code/app/log/place.log")
+logger = logging.getLogger(__name__)
+
 # App instance creation
 app = FastAPI()
+
+static_files_app = StaticFiles(directory=".")
+app.mount(path="/static", app=static_files_app, name="static")
 
 # Database connections
 redis_session = connect_to_redis(10)
@@ -188,6 +203,7 @@ cassandra_session = connect_to_cassandra(10)
 
 # Global variables
 key = 'place_bitmap'
+# TODO : Use a list instead ?
 active_connections: Set[WebSocket] = set()
 
 # Middleware setup
@@ -210,6 +226,11 @@ class DrawCommand(BaseModel):
 # Routes
 
 app = FastAPI()
+if ENABLE_TIMING:
+    add_timing_middleware(app, record=logger.info, prefix="app", exclude="untimed")
+
+static_files_app = StaticFiles(directory=".")
+app.mount(path="/static", app=static_files_app, name="static")
 
 @app.middleware("http")
 async def verify_token(request: Request, call_next):
@@ -273,7 +294,6 @@ async def draw_on_board(command: DrawCommand, request: Request):
     if not (0 <= command.color <  MAX_COLORS):
         raise HTTPException(status_code=400, detail="Invalid color value")
     
-    
     ts = datetime.utcnow()
     # Update the last tile timestamp for the user
     set_last_user_timestamp(cassandra_session, request.state.token_data.username, ts)
@@ -283,18 +303,29 @@ async def draw_on_board(command: DrawCommand, request: Request):
     set_4bit_value(redis_session, key, index, command.color)
     
     # Notify all WebSocket clients about the draw
-    for connection in active_connections:
-        await connection.send_json({
-            "type": "draw",
-            "x": command.x,
-            "y": command.y,
-            "color": command.color,
-            "user": request.state.token_data.username,
-            "timestamp": ts.isoformat()
-        })
+    start_time = time.time()
+
+    for connection in list(active_connections):
+        try:
+            await connection.send_json({
+                "type": "draw",
+                "x": command.x,
+                "y": command.y,
+                "color": command.color,
+                "user": request.state.token_data.username,
+                "timestamp": ts.isoformat()
+            })
+        except WebSocketDisconnect:
+            active_connections.remove(connection)
+
+    end_time = time.time()
+    if ENABLE_TIMING:
+        execution_time = (end_time - start_time) * 1000
+        logger.info(f"INFO:app.main:TIMING: Websocket send: {execution_time}ms by {request.state.token_data.username}")
         
     return {"message": "Pixel updated successfully"}
 
+# TODO : Update to have a clear difference betweer error and no timestamp found
 @app.get("/api/place/last-user-timestamp/")
 async def get_user_last_timestamp(request: Request):
     timestamp = get_last_user_timestamp(cassandra_session, request.state.token_data.username)
@@ -302,11 +333,46 @@ async def get_user_last_timestamp(request: Request):
         raise HTTPException(status_code=404, detail="No timestamp found for user")
     return {"timestamp": timestamp}
 
-
+# TODO : Change the set to a list, and use the username as the key to avoid double connections
 @app.websocket("/api/place/board-bitmap/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+
+    
+    # Get the headers from the WebSocket connection request
+    headers = dict(websocket._headers)
+    # Convert header names to lowercase for case-insensitive comparison
+    headers = {k.lower(): v for k, v in headers.items()}
+    
+    # Check for 'cookie' header
+    cookies = headers.get('cookie')
+    if not cookies:
+        print("No cookies in websocket headers")
+        await websocket.close(code=1008)
+        return
+
+    # Parse the cookies to find the token
+    cookies = {cookie.split('=')[0]: cookie.split('=')[1] for cookie in cookies.split('; ')}
+    token = cookies.get('token')
+    if not token:
+        print("No token in websocket headers")
+        await websocket.close(code=1008)
+        return
+
+    try:
+        token_data = decode_jwt(token)
+    except Exception as e:
+        print("Token error for websocket : ", e)
+        await websocket.close(code=1008)
+        return
+    
+    # If the token is valid, add the websocket to the active connections
     active_connections.add(websocket)
+    
+    # Attach the token data to the websocket
+    websocket.token_data = token_data
+    #print("Websocket connection established with user : ", token_data.username)
+
     try:
         while True:
             data = await websocket.receive_text()
