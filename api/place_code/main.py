@@ -291,6 +291,12 @@ async def draw_on_board(command: DrawCommand, request: Request):
         raise HTTPException(status_code=400, detail="Coordinates out of bounds")
     if not (0 <= command.color <  MAX_COLORS):
         raise HTTPException(status_code=400, detail="Invalid color value")
+    # Check if the delay has passed since the last draw
+    last_timestamp = get_last_user_timestamp(cassandra_session, request.state.token_data.username)
+    if last_timestamp:
+        time_diff = (datetime.utcnow() - last_timestamp).total_seconds()
+        if time_diff < DELAY:
+            raise HTTPException(status_code=429, detail=f"Please wait {DELAY - time_diff:.2f} seconds before drawing again")
     
     ts = datetime.utcnow()
     # Update the last tile timestamp for the user
