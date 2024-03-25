@@ -17,8 +17,8 @@ from fastapi_utils.timing import add_timing_middleware, record_timing
 
 
 ## Constants 
-
 ENABLE_TIMING = False
+DELAY = 10 # Delay in seconds for every pixel update
 
 # Board
 MAX_COLORS =  16
@@ -268,12 +268,10 @@ async def read_root():
     store_draw_info(cassandra_session, 1, 1, 1, "test", datetime.utcnow())
     
     return {"message": "Welcome to the Place API"}
-    # Test the Cassandra connection
-    # set_last_user_timestamp(cassandra_session, "test", None)
-    # a = get_last_user_timestamp(cassandra_session, "test")
-    # return a
-    # test store_draw_info
 
+@app.get("/api/place/delay")
+def get_delay():
+    return {"delay": DELAY}
 
 @app.get("/api/place/board-bitmap")
 def get_board_bitmap():
