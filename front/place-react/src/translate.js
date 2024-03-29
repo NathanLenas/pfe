@@ -14,7 +14,7 @@ const colorNumberMap = {
   "#0083C7":12,
   "#0000EA":13,
   "#CF6EE4":14,
-  "#820080":15,
+  "#ffffff":15,
 };
   
   const numberColorMap = {};

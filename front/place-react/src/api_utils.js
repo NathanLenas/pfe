@@ -26,7 +26,6 @@ const get_api = async (url) => {
 }
 
 const post_api = async (url, data) => {
-    try {
         console.log("post:" + `${API_URL}${url}`);
         console.log("data:" + JSON.stringify(data));
         const response = await axios.post(`${API_URL}${url}`, data, {
@@ -36,9 +35,6 @@ const post_api = async (url, data) => {
         });
         console.log("post:" + `${API_URL}${url}`);
         return response.data;
-    } catch (error) {
-        console.error("Error fetching :", error);
-    }
 }
 
 const register = async (name, password) => {

@@ -22,8 +22,6 @@ const Canvas = () => {
  const fetchBoard = async () => {
     try {
       let board = await api.get_api("/api/place/board-bitmap");
-      console.log("Board fetched:");
-      console.log(board);
       return board;
     } catch (error) {
       console.error("Error fetching board:", error);
@@ -35,9 +33,7 @@ const Canvas = () => {
     const getDelay = async () => {
       try {
         let delay = await api.get_api("/api/place/delay");
-        console.log("Delay fetched:");
-        console.log(delay.delay);
-        setDelay(delay.delay);
+        setDelay(delay.delay + 1);
       
       } catch (error) {
         console.error("Error fetching delay:", error);
@@ -96,11 +92,8 @@ const Canvas = () => {
  }, [ctx]);
 
  const handleMessage = (event) => {
-    console.log("Message received:");
-    console.log(event.data);
     const data = JSON.parse(event.data);
     const { x, y, color } = data;
-    console.log(`Updating pixel at (${x}, ${y}) to color ${color}`);
     const colorCode = translateNumberTocolor(color);
     if (colorCode !== -1) {
       const canvas = canvasRef.current;
@@ -157,7 +150,7 @@ const Canvas = () => {
  const handleDisconnect = () => {
     setCookie('user', null, { path: '/' })
     setCookie('token', null, { path: '/' })
-    console.log("User and token cookies changed to : ", cookies.user, " ", cookies.token);
+    // console.log("User and token cookies changed to : ", cookies.user, " ", cookies.token);
     navigate("/");
  };
 
@@ -169,11 +162,14 @@ const Canvas = () => {
     const scaleY = canvas.height / rect.height;
     const x = Math.floor(((event.clientX - rect.left) * scaleX) / 10);
     const y = Math.floor(((event.clientY - rect.top) * scaleY) / 10);
-    console.log(`Clicked at (${x}, ${y})`);
-    const context = canvas.getContext('2d');
-    context.fillStyle = color;
-    context.fillRect(x * 10, y * 10, 10, 10);
-    updateDB(x, y);
+  
+    if(updateDB(x, y))
+    {
+      console.log(`Clicked at (${x}, ${y})`);
+      const context = canvas.getContext('2d');
+      context.fillStyle = color;
+      context.fillRect(x * 10, y * 10, 10, 10);
+    }
   }
  };
 
@@ -184,15 +180,17 @@ const Canvas = () => {
     if (numColor === -1) {
       numColor = 0;
     }
-    console.log("numColor: " + numColor);
+    // console.log("numColor: " + numColor);
     api.post_api("/api/place/draw", {
       x: x,
       y: y,
       color: numColor
     }).catch(error => {
       console.error("Error updating pixel:", error);
+      return false;
     }).then(() => {
       setTimer(delay);
+      return true;
     });
  };
 

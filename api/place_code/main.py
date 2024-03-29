@@ -17,8 +17,8 @@ from fastapi_utils.timing import add_timing_middleware, record_timing
 
 
 ## Constants 
-ENABLE_TIMING = False
-DELAY = 10 # Delay in seconds for every pixel update
+ENABLE_TIMING = True
+DELAY = 2 # Delay in seconds for every pixel update
 
 # Board
 MAX_COLORS =  16
@@ -305,7 +305,6 @@ async def draw_on_board(command: DrawCommand, request: Request):
     store_draw_info(cassandra_session, command.x, command.y, command.color, request.state.token_data.username, ts)
     # Set the pixel color in Redis
     set_4bit_value(redis_session, key, index, command.color)
-    
     # Notify all WebSocket clients about the draw
     start_time = time.time()
 
@@ -321,12 +320,10 @@ async def draw_on_board(command: DrawCommand, request: Request):
             })
         except WebSocketDisconnect:
             active_connections.remove(connection)
-
     end_time = time.time()
     if ENABLE_TIMING:
         execution_time = (end_time - start_time) * 1000
-        logger.info(f"INFO:app.main:TIMING: Websocket send: {execution_time}ms by {request.state.token_data.username}")
-        
+        logger.info(f"{ts} Websocket send: {execution_time}ms, {len(active_connections)} users  (by {request.state.token_data.username})")
     return {"message": "Pixel updated successfully"}
 
 # TODO : Update to have a clear difference betweer error and no timestamp found
@@ -338,23 +335,20 @@ async def get_user_last_timestamp(request: Request):
     return {"timestamp": timestamp}
 
 # TODO : Change the set to a list, and use the username as the key to avoid double connections
+
 @app.websocket("/api/place/board-bitmap/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-
-    
     # Get the headers from the WebSocket connection request
     headers = dict(websocket._headers)
     # Convert header names to lowercase for case-insensitive comparison
     headers = {k.lower(): v for k, v in headers.items()}
-    
     # Check for 'cookie' header
     cookies = headers.get('cookie')
     if not cookies:
         print("No cookies in websocket headers")
         await websocket.close(code=1008)
         return
-
     # Parse the cookies to find the token
     cookies = {cookie.split('=')[0]: cookie.split('=')[1] for cookie in cookies.split('; ')}
     token = cookies.get('token')
@@ -362,21 +356,16 @@ async def websocket_endpoint(websocket: WebSocket):
         print("No token in websocket headers")
         await websocket.close(code=1008)
         return
-
     try:
         token_data = decode_jwt(token)
     except Exception as e:
         print("Token error for websocket : ", e)
         await websocket.close(code=1008)
         return
-    
     # If the token is valid, add the websocket to the active connections
     active_connections.add(websocket)
-    
     # Attach the token data to the websocket
     websocket.token_data = token_data
-    #print("Websocket connection established with user : ", token_data.username)
-
     try:
         while True:
             data = await websocket.receive_text()
