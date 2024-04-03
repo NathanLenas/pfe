@@ -48,7 +48,7 @@ const Connection = () => {
       <form onSubmit={handleSubmit}>
         <p>Please enter your login and password</p>
         <label>
-          Name:
+          Name: <br/>
           <input
             type="text"
             name="name"
@@ -57,7 +57,7 @@ const Connection = () => {
           />
         </label>
         <label>
-          Password:
+          Password: <br/>
           <input
             type="password"
             name="password"

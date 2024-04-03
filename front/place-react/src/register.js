@@ -45,6 +45,7 @@ const Register = () => {
         <p>Create new account</p>
         <label>
           Name:
+          <br/>
           <input
             type="text"
             name="name"
@@ -54,6 +55,7 @@ const Register = () => {
         </label>
         <label>
           Password:
+          <br/>
           <input
             type="password"
             name="password"
