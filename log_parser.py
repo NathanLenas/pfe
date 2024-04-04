@@ -3,8 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Read logs from file
-with open('/home/nat/Documents/cours/ing3/place_pfe/api/place_code/log/place.log') as f:
+with open('./api/place_code/log/place.log') as f:
+    
     logs = f.readlines()
+    print("got " + str(len(logs)) + " lines of logs")
 
 # Regular expressions to extract data
 timing_regex = re.compile(r"TIMING: Wall:    (\d+\.\d+)ms \| CPU:    (\d+\.\d+)ms \| app.app.main.draw_on_board", re.IGNORECASE)
@@ -33,6 +35,7 @@ for log in logs:
 # Convert data_points to a pandas DataFrame
 df = pd.DataFrame(data_points)
 
+print(df.head())
 # Group by number of users and calculate the average timing
 average_timing = df.groupby('num_users')['timing'].mean()
 
