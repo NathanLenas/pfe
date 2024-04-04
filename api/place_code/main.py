@@ -24,6 +24,18 @@ DELAY = 2 # Delay in seconds for every pixel update
 MAX_COLORS =  16
 BOARD_SIZE =  100
 
+
+# Setup logging 
+
+# Create log directory if it does not exist
+if not os.path.exists("/code/app/log"):
+    os.makedirs("/code/app/log")
+
+# Create log file if it does not exist
+if not os.path.exists("/code/app/log/place.log"):
+    with open("/code/app/log/place.log", "w") as f:
+        f.write("")
+        
 # Token constants 
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
@@ -187,16 +199,6 @@ def decode_jwt(token: str = Depends(oauth2_scheme)):
     
 # --------------------------------------------------------------------------------------------
 
-# Setup logging 
-
-# Create log directory if it does not exist
-if not os.path.exists("/code/app/log"):
-    os.makedirs("/code/app/log")
-
-# Create log file if it does not exist
-if not os.path.exists("/code/app/log/place.log"):
-    with open("/code/app/log/place.log", "w") as f:
-        f.write("")
         
 logging.basicConfig(level=logging.INFO, filename="/code/app/log/place.log")
 logger = logging.getLogger(__name__)
