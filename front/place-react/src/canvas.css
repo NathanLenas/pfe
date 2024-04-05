@@ -23,14 +23,6 @@ canvas {
   margin:   5px;
 }
 
-.colorButton {
-  width:  30px; 
-  height:  30px;
-  border: none;
-  border-radius:  50%; /* This will make the button circular */
-  cursor: pointer;
-  transition: background-color  0.3s ease;
-}
 
 .colorButton:hover {
   transform: scale(1.1);
@@ -70,12 +62,12 @@ canvas {
 }
 
 .colorTable .colorButton {
-  width:  30px;
-  height:  30px;
+  width: 16px; 
+  height: 34px;
   border: none;
-  border-radius:  50%;
+  border-radius: 100%; 
   cursor: pointer;
-  transition: background-color  0.3s ease;
+  transition: background-color 0.3s ease;
 }
 
 .colorTable .colorButton:hover {

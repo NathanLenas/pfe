@@ -41,6 +41,7 @@ const Register = () => {
   };
   return (
     <div>
+      <h1>EISTI/Place </h1>
       <form onSubmit={handleSubmit}>
         <p>Create new account</p>
         <label>

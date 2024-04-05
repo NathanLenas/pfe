@@ -45,6 +45,9 @@ const Connection = () => {
 
   return (
     <div>
+      <h1>
+        EISTI/Place 
+      </h1>
       <form onSubmit={handleSubmit}>
         <p>Please enter your login and password</p>
         <label>

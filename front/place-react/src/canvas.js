@@ -93,6 +93,8 @@ const Canvas = () => {
 
  const handleMessage = (event) => {
     const data = JSON.parse(event.data);
+    // print  precise timestamp of the message
+    // console.log("Message received at: ", new Date().toISOString());
     const { x, y, color } = data;
     const colorCode = translateNumberTocolor(color);
     if (colorCode !== -1) {

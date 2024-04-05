@@ -18,6 +18,12 @@ form {
   width:  400px;
 }
 
+h1 {
+  color: #3498db; 
+  font-size: 24px;
+  font-weight: bold;
+}
+
 form p {
   text-align: center;
   margin-bottom:  20px;
