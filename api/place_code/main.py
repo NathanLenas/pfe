@@ -215,7 +215,7 @@ cassandra_session = connect_to_cassandra(10)
 
 # Global variables
 key = 'place_bitmap'
-# TODO : Use a list instead ?
+
 active_connections: Set[WebSocket] = set()
 
 # Middleware setup
@@ -338,7 +338,6 @@ async def draw_on_board(command: DrawCommand, request: Request):
         logger.info(f"{ts} Websocket send: {execution_time}ms, {len(active_connections)} users  (by {request.state.token_data.username})")
     return {"message": "Pixel updated successfully"}
 
-# TODO : Update to have a clear difference betweer error and no timestamp found
 @app.get("/api/place/last-user-timestamp/")
 async def get_user_last_timestamp(request: Request):
     timestamp = get_last_user_timestamp(cassandra_session, request.state.token_data.username)
@@ -346,7 +345,6 @@ async def get_user_last_timestamp(request: Request):
         raise HTTPException(status_code=404, detail="No timestamp found for user")
     return {"timestamp": timestamp}
 
-# TODO : Change the set to a list, and use the username as the key to avoid double connections
 
 @app.websocket("/api/place/board-bitmap/ws")
 async def websocket_endpoint(websocket: WebSocket):
