@@ -4,13 +4,12 @@ import matplotlib.pyplot as plt
 
 # Read logs from file
 with open('./api/place_code/log/place.log') as f:
-    
     logs = f.readlines()
     print("got " + str(len(logs)) + " lines of logs")
 
-# Regular expressions to extract data
-timing_regex = re.compile(r"TIMING: Wall:    (\d+\.\d+)ms \| CPU:    (\d+\.\d+)ms \| app.app.main.draw_on_board", re.IGNORECASE)
-websocket_regex = re.compile(r"Websocket send: (\d+\.\d+)ms, (\d+) users", re.IGNORECASE)
+timing_regex = re.compile(r"TIMING: Wall:\s*(\d+\.\d+)ms \| CPU:\s*(\d+\.\d+)ms \| app.app.main.draw_on_board", re.IGNORECASE)
+websocket_regex = re.compile(r"Websocket send:\s*(\d+\.\d+)ms, (\d+) users", re.IGNORECASE)
+get_board_bitmap_regex = re.compile(r"TIMING: Wall:\s*(\d+\.\d+)ms \| CPU:\s*(\d+\.\d+)ms \| app.app.main.get_board_bitmap", re.IGNORECASE)
 
 # Data storage
 data_points = []
@@ -19,31 +18,48 @@ data_points = []
 for log in logs:
     timing_match = timing_regex.search(log)
     websocket_match = websocket_regex.search(log)
+    get_board_bitmap_match = get_board_bitmap_regex.search(log)
+    
+    timing = None # Initialize timing to None
     
     if timing_match:
         wall_time, cpu_time = timing_match.groups()
-        # Store the total timing (e.g., Wall time)
         timing = float(wall_time) + float(cpu_time)
+        if timing is not None:
+            data_points.append({"timing": timing, "operation": "draw_on_board"})
     
     if websocket_match:
         websocket_time, num_users = websocket_match.groups()
-        # Store the number of users for each WebSocket send operation
         num_users = int(num_users) // 2
-        # Combine timing and number of users into a single data point
-        data_points.append({"timing": timing,  "num_users": num_users})
+        if timing is not None: 
+            data_points.append({"timing": timing, "num_users": num_users, "operation": "draw_on_board"})
+    
+    if get_board_bitmap_match:
+        wall_time, cpu_time = get_board_bitmap_match.groups()
+        timing = float(wall_time) + float(cpu_time)
+        if timing is not None: 
+            data_points.append({"timing": timing, "operation": "get_board_bitmap"})
 
 # Convert data_points to a pandas DataFrame
 df = pd.DataFrame(data_points)
 
-print(df.head())
-# Group by number of users and calculate the average timing
-average_timing = df.groupby('num_users')['timing'].mean()
+# Calculate average timing for each operation
+average_timing_per_operation = df.groupby('operation')['timing'].mean()
+
+# Calculate standard deviation for each operation
+std_dev_per_operation = df.groupby('operation')['timing'].std()
+
+print("Average timing per operation")
+print(average_timing_per_operation)
+
+print("Standard deviation per operation")
+print(std_dev_per_operation)
 
 # Plotting
 plt.figure(figsize=(10, 5))
 
-# Plot average timing against the number of users
-average_timing.plot(kind='line', x='num_users', y='timing', title="Average Timing vs. Number of Users", xlabel="Number of Users", ylabel="Average Timing (ms)")
+# Plot average timing for each operation with standard deviation as error bars
+average_timing_per_operation.plot(kind='bar', yerr=std_dev_per_operation, capsize=5, title="Average Timing per Operation with Standard Deviation", xlabel="Operation", ylabel="Average Timing (ms)")
 
 plt.tight_layout()
 plt.show()
